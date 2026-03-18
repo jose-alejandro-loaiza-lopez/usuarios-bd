@@ -1,23 +1,18 @@
-# 🛒 Microservicio: Usuarios-Service (EcoMerca2)
+# 🛒 EcoMerca2 - Usuarios Service
 
-Este microservicio es el núcleo de gestión de perfiles para la aplicación **EcoMerca2**. Se encarga de la autenticación segura, el almacenamiento de preferencias del usuario y la sincronización de datos (como alimentos favoritos) entre dispositivos.
+Este microservicio gestiona la autenticación, perfiles y preferencias de los usuarios de la plataforma **EcoMerca2**. Implementa seguridad basada en **JWT (JSON Web Tokens)** y control de acceso por roles (**RBAC**).
 
-## 🚀 Tecnologías utilizadas
+## 🚀 Requisitos Previos
+* **Docker & Docker Compose** instalados.
+* Base de datos PostgreSQL activa (contenedor `intellij-postgres-1`).
+* Servidor corriendo en `http://localhost:8080`.
 
-* **Java 21** (Amazon Corretto)
-* **Spring Boot 3**
-* **Spring Security** (BCrypt para contraseñas)
-* **PostgreSQL**
-* **Docker & Docker Compose**
+---
 
-## 🧪 Flujo de Pruebas (Base de datos vacía)
+## 🔐 Guía de Endpoints y Pruebas
 
-Sigue este orden exacto para probar el sistema desde cero:
-
-### 1️⃣ Registro de Usuario (Abierto)
-
-Como la base de datos está vacía, primero creamos al usuario. Este endpoint no requiere token.
-
+### 1. Registro de Usuario (Público)
+Crea una nueva cuenta. Por defecto, el sistema asigna el rol `ROLE_USER`.
 ```bash
 curl -X POST http://localhost:8080/api/v1/usuarios/ \
 -H "Content-Type: application/json" \
@@ -27,13 +22,10 @@ curl -X POST http://localhost:8080/api/v1/usuarios/ \
   "password": "password123",
   "fechaNacimiento": "2000-10-25"
 }'
-
 ```
 
-### 2️⃣ Inicio de Sesión (Login)
-
-Obtén tu llave de acceso (Token). **Copia el valor del "token" que recibas.**
-
+### 2. Inicio de Sesión (Login)
+Obtén tu token de acceso. **Nota:** Debes copiar el `token` devuelto para los siguientes pasos.
 ```bash
 curl -X POST http://localhost:8080/api/v1/usuarios/login \
 -H "Content-Type: application/json" \
@@ -41,133 +33,52 @@ curl -X POST http://localhost:8080/api/v1/usuarios/login \
   "email": "jose@ecomerca.com",
   "password": "password123"
 }'
-
 ```
 
-### 3️⃣ Acceso a Endpoints Protegidos
-
-Para cualquier otra operación, debes incluir el token en la cabecera. Sustituye `TU_TOKEN` por el código que obtuviste en el paso anterior.
-
-#### 🔹 Listar todos los usuarios
-
+### 3. Listar Usuarios (Solo ADMIN)
+Este endpoint requiere un token con `ROLE_ADMIN`. Si usas un token de usuario normal, recibirás un `403 Forbidden`.
 ```bash
 curl -X GET http://localhost:8080/api/v1/usuarios/ \
--H "Authorization: Bearer TU_TOKEN"
-
+-H "Authorization: Bearer <TU_TOKEN_AQUI>"
 ```
 
-#### 🔹 Actualizar alimentos favoritos (PATCH)
-
-Sincroniza los gustos del usuario sin modificar el resto del perfil.
-
+### 4. Sincronizar Favoritos (Propietario/Admin)
+Permite guardar una lista de strings con los productos preferidos.
 ```bash
 curl -X PATCH http://localhost:8080/api/v1/usuarios/1/favoritos \
--H "Authorization: Bearer TU_TOKEN" \
+-H "Authorization: Bearer <TU_TOKEN_AQUI>" \
 -H "Content-Type: application/json" \
--d '["Pollo", "Tomate", "Lentejas"]'
-
+-d '["Aguacate", "Cafe del Valle", "Arepas"]'
 ```
 
-#### 🔹 Obtener perfil por ID
-
-```bash
-curl -X GET http://localhost:8080/api/v1/usuarios/1 \
--H "Authorization: Bearer TU_TOKEN"
-
-```
-
-## 📦 Endpoints REST
-
-Base URL: `/api/v1/usuarios`
-
-### 🔹 Obtener todos los usuarios
-
-```bash
-curl -X GET http://localhost:8080/api/v1/usuarios/
-
-```
-
-### 🔹 Obtener usuarios paginados
-
-```bash
-curl -X GET http://localhost:8080/api/v1/usuarios/page/0
-
-```
-
-### 🔹 Obtener un usuario por ID
-
-```bash
-curl -X GET http://localhost:8080/api/v1/usuarios/1
-
-```
-
-### 🔹 Registrar un usuario (EcoMerca2)
-
-*Nota: La contraseña se encriptará automáticamente en el servidor.*
-
-```bash
-curl -X POST http://localhost:8080/api/v1/usuarios/ \
--H "Content-Type: application/json" \
--d '{
-  "nombre": "Jose Alejandro",
-  "email": "jose@ecomerca.com",
-  "password": "password123",
-  "fechaNacimiento": "2000-10-25"
-}'
-
-```
-
-### 🔹 Actualizar perfil o favoritos
-
+### 5. Actualizar Perfil (Propietario/Admin)
+Actualiza datos básicos. El campo `role` es de **solo lectura** y no se puede modificar por este medio.
 ```bash
 curl -X PUT http://localhost:8080/api/v1/usuarios/ \
+-H "Authorization: Bearer <TU_TOKEN_AQUI>" \
 -H "Content-Type: application/json" \
 -d '{
   "id": 1,
-  "nombre": "Jose Alejandro",
-  "email": "jose@ecomerca.com",
-  "password": "newpassword123",
+  "nombre": "Jose Alejandro Actualizado",
   "fechaNacimiento": "2000-10-25",
-  "alimentosFavoritos": ["Manzana", "Pollo", "Arroz", "Lentejas"]
+  "password": "nuevapassword123"
 }'
-
 ```
 
-### 🔹 Eliminar un usuario
-
+### 6. Eliminar Cuenta (Propietario/Admin)
+Elimina el registro de la base de datos. Si un usuario intenta borrar a otro sin ser Admin, el sistema lanzará una `AccesoDenegadoException`.
 ```bash
-curl -X DELETE http://localhost:8080/api/v1/usuarios/1
-
+curl -X DELETE http://localhost:8080/api/v1/usuarios/1 \
+-H "Authorization: Bearer <TU_TOKEN_AQUI>"
 ```
 
-### 🔹 Actualizar listado de favoritos
+---
 
-```bash
-curl -X PATCH http://localhost:8080/api/v1/usuarios/1/favoritos \
--H "Content-Type: application/json" \
--d '["Pollo", "Tomate", "Cerveza"]'
-```
+## 🛠️ Estructura de Seguridad
 
-## 🗃️ Modelo de Datos (JPA)
+| Rol | Permisos |
+| :--- | :--- |
+| **Anónimo** | Registro y Login. |
+| **ROLE_USER** | Ver/Editar/Borrar su **propio** perfil y favoritos. |
+| **ROLE_ADMIN** | Todo lo anterior + Listar todos los usuarios y gestionar perfiles ajenos. |
 
-```java
-@Entity
-public class Usuarios {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private String nombre;
-    
-    @Column(unique = true)
-    private String email;
-
-    private String password; // Almacenado como Hash BCrypt
-
-    private LocalDate fechaNacimiento;
-
-    @ElementCollection
-    private List<String> alimentosFavoritos;
-}
-
-```
