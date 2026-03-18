@@ -1,16 +1,16 @@
 Microsoft Windows [Versión 10.0.26100.3915]
 (c) Microsoft Corporation. Todos los derechos reservados.
 
-C:\Users\josea>curl -X GET http://localhost:8080/api/v1/semestre-service/semestres
-{"semestres":[{"id":1,"activo":true,"fechaInicio":"2025-01-01","fechaFin":"2025-06-30","idPrograma":1001,"numeroSemestre":1},{"id":2,"activo":true,"fechaInicio":"2025-07-01","fechaFin":"2025-12-15","idPrograma":1001,"numeroSemestre":2},{"id":3,"activo":false,"fechaInicio":"2024-01-15","fechaFin":"2024-06-20","idPrograma":1002,"numeroSemestre":1},{"id":4,"activo":true,"fechaInicio":"2026-01-05","fechaFin":"2026-06-25","idPrograma":1001,"numeroSemestre":3},{"id":5,"activo":true,"fechaInicio":"2025-08-10","fechaFin":"2026-01-15","idPrograma":1003,"numeroSemestre":2}]}
-C:\Users\josea>curl -X GET http://localhost:8080/api/v1/semestre-service/semestre/page/0
+C:\Users\josea>curl -X GET http://localhost:8080/api/v1/usuarios-service/usuarios
+{"usuarios":[{"id":1,"activo":true,"fechaInicio":"2025-01-01","fechaFin":"2025-06-30","idPrograma":1001,"numeroSemestre":1},{"id":2,"activo":true,"fechaInicio":"2025-07-01","fechaFin":"2025-12-15","idPrograma":1001,"numeroSemestre":2},{"id":3,"activo":false,"fechaInicio":"2024-01-15","fechaFin":"2024-06-20","idPrograma":1002,"numeroSemestre":1},{"id":4,"activo":true,"fechaInicio":"2026-01-05","fechaFin":"2026-06-25","idPrograma":1001,"numeroSemestre":3},{"id":5,"activo":true,"fechaInicio":"2025-08-10","fechaFin":"2026-01-15","idPrograma":1003,"numeroSemestre":2}]}
+C:\Users\josea>curl -X GET http://localhost:8080/api/v1/usuarios-service/usuarios/page/0
 {"content":[{"id":1,"activo":true,"fechaInicio":"2025-01-01","fechaFin":"2025-06-30","idPrograma":1001,"numeroSemestre":1},{"id":2,"activo":true,"fechaInicio":"2025-07-01","fechaFin":"2025-12-15","idPrograma":1001,"numeroSemestre":2},{"id":3,"activo":false,"fechaInicio":"2024-01-15","fechaFin":"2024-06-20","idPrograma":1002,"numeroSemestre":1},{"id":4,"activo":true,"fechaInicio":"2026-01-05","fechaFin":"2026-06-25","idPrograma":1001,"numeroSemestre":3}],"pageable":{"pageNumber":0,"pageSize":4,"sort":{"empty":true,"sorted":false,"unsorted":true},"offset":0,"paged":true,"unpaged":false},"last":false,"totalPages":2,"totalElements":5,"first":true,"size":4,"number":0,"sort":{"empty":true,"sorted":false,"unsorted":true},"numberOfElements":4,"empty":false}
-C:\Users\josea>curl -X GET http://localhost:8080/api/v1/semestre-service/semestres/1
-{"mensaje":"El semestre ha sido encontrado con éxito!","semestre":{"id":1,"activo":true,"fechaInicio":"2025-01-01","fechaFin":"2025-06-30","idPrograma":1001,"numeroSemestre":1}}
-C:\Users\josea>curl -X POST http://localhost:8080/api/v1/semestre-service/semestres -H "Content-Type: application/json" -d "{\"activo\":true,\"fechaInicio\":\"2025-01-15\",\"fechaFin\":\"2025-06-15\",\"idPrograma\":1,\"numeroSemestre\":1}"
-{"mensaje":"El semestre ha sido creado con éxito!","semestre":{"id":6,"activo":true,"fechaInicio":"2025-01-15","fechaFin":"2025-06-15","idPrograma":1,"numeroSemestre":1}}
-C:\Users\josea>curl -X PUT http://localhost:8080/api/v1/semestre-service/semestres -H "Content-Type: application/json" -d "{\"id\":1,\"activo\":false,\"fechaInicio\":\"2025-01-20\",\"fechaFin\":\"2025-06-20\",\"idPrograma\":1,\"numeroSemestre\":1}"
-{"mensaje":"El semestre ha sido actualizado con éxito!","semestre":{"id":1,"activo":false,"fechaInicio":"2025-01-20","fechaFin":"2025-06-20","idPrograma":1,"numeroSemestre":1}}
-C:\Users\josea>curl -X DELETE http://localhost:8080/api/v1/semestre-service/semestres -H "Content-Type: application/json" -d "{\"id\":1}"
-{"mensaje":"El semestre ha sido eliminado con éxito!","semestre":null}
+C:\Users\josea>curl -X GET http://localhost:8080/api/v1/usuarios-service/usuarios/1
+{"mensaje":"El usuarios ha sido encontrado con éxito!","usuarios":{"id":1,"activo":true,"fechaInicio":"2025-01-01","fechaFin":"2025-06-30","idPrograma":1001,"numeroSemestre":1}}
+C:\Users\josea>curl -X POST http://localhost:8080/api/v1/usuarios-service/usuarios -H "Content-Type: application/json" -d "{\"activo\":true,\"fechaInicio\":\"2025-01-15\",\"fechaFin\":\"2025-06-15\",\"idPrograma\":1,\"numeroSemestre\":1}"
+{"mensaje":"El usuarios ha sido creado con éxito!","usuarios":{"id":6,"activo":true,"fechaInicio":"2025-01-15","fechaFin":"2025-06-15","idPrograma":1,"numeroSemestre":1}}
+C:\Users\josea>curl -X PUT http://localhost:8080/api/v1/usuarios-service/usuarios -H "Content-Type: application/json" -d "{\"id\":1,\"activo\":false,\"fechaInicio\":\"2025-01-20\",\"fechaFin\":\"2025-06-20\",\"idPrograma\":1,\"numeroSemestre\":1}"
+{"mensaje":"El usuarios ha sido actualizado con éxito!","usuarios":{"id":1,"activo":false,"fechaInicio":"2025-01-20","fechaFin":"2025-06-20","idPrograma":1,"numeroSemestre":1}}
+C:\Users\josea>curl -X DELETE http://localhost:8080/api/v1/usuarios-service/usuarios -H "Content-Type: application/json" -d "{\"id\":1}"
+{"mensaje":"El usuarios ha sido eliminado con éxito!","usuarios":null}
 C:\Users\josea>

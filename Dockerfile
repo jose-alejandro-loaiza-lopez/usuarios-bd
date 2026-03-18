@@ -1,5 +1,5 @@
-FROM openjdk:23
+FROM amazoncorretto:21-alpine
 LABEL authors="josea"
 WORKDIR /app
-COPY target/semestre-service-0.0.1-SNAPSHOT.jar /app
-ENTRYPOINT ["java", "-jar", "semestre-service-0.0.1-SNAPSHOT.jar"]
+COPY target/usuarios-bd-1.0.jar /app
+ENTRYPOINT ["java", "-jar", "usuarios-bd-1.0.jar"]

@@ -1,73 +1,173 @@
-# Microservicio: Semestre
+# 🛒 Microservicio: Usuarios-Service (EcoMerca2)
 
-Este microservicio se encarga de la gestión de los semestres académicos.
+Este microservicio es el núcleo de gestión de perfiles para la aplicación **EcoMerca2**. Se encarga de la autenticación segura, el almacenamiento de preferencias del usuario y la sincronización de datos (como alimentos favoritos) entre dispositivos.
+
+## 🚀 Tecnologías utilizadas
+
+* **Java 21** (Amazon Corretto)
+* **Spring Boot 3**
+* **Spring Security** (BCrypt para contraseñas)
+* **PostgreSQL**
+* **Docker & Docker Compose**
+
+## 🧪 Flujo de Pruebas (Base de datos vacía)
+
+Sigue este orden exacto para probar el sistema desde cero:
+
+### 1️⃣ Registro de Usuario (Abierto)
+
+Como la base de datos está vacía, primero creamos al usuario. Este endpoint no requiere token.
+
+```bash
+curl -X POST http://localhost:8080/api/v1/usuarios/ \
+-H "Content-Type: application/json" \
+-d '{
+  "nombre": "Jose Alejandro",
+  "email": "jose@ecomerca.com",
+  "password": "password123",
+  "fechaNacimiento": "2000-10-25"
+}'
+
+```
+
+### 2️⃣ Inicio de Sesión (Login)
+
+Obtén tu llave de acceso (Token). **Copia el valor del "token" que recibas.**
+
+```bash
+curl -X POST http://localhost:8080/api/v1/usuarios/login \
+-H "Content-Type: application/json" \
+-d '{
+  "email": "jose@ecomerca.com",
+  "password": "password123"
+}'
+
+```
+
+### 3️⃣ Acceso a Endpoints Protegidos
+
+Para cualquier otra operación, debes incluir el token en la cabecera. Sustituye `TU_TOKEN` por el código que obtuviste en el paso anterior.
+
+#### 🔹 Listar todos los usuarios
+
+```bash
+curl -X GET http://localhost:8080/api/v1/usuarios/ \
+-H "Authorization: Bearer TU_TOKEN"
+
+```
+
+#### 🔹 Actualizar alimentos favoritos (PATCH)
+
+Sincroniza los gustos del usuario sin modificar el resto del perfil.
+
+```bash
+curl -X PATCH http://localhost:8080/api/v1/usuarios/1/favoritos \
+-H "Authorization: Bearer TU_TOKEN" \
+-H "Content-Type: application/json" \
+-d '["Pollo", "Tomate", "Lentejas"]'
+
+```
+
+#### 🔹 Obtener perfil por ID
+
+```bash
+curl -X GET http://localhost:8080/api/v1/usuarios/1 \
+-H "Authorization: Bearer TU_TOKEN"
+
+```
 
 ## 📦 Endpoints REST
 
-Base URL: `/api/v1/semestre-service`
+Base URL: `/api/v1/usuarios`
 
-### 🔹 Obtener todos los semestres
+### 🔹 Obtener todos los usuarios
+
 ```bash
-curl -X GET http://localhost:8080/api/v1/semestre-service/semestres
-```
-### 🔹 Obtener semestres paginados
-```bash
-curl -X GET http://localhost:8080/api/v1/semestre-service/semestre/page/0
-```
-### 🔹 Obtener un semestre por ID
-```bash
-curl -X GET http://localhost:8080/api/v1/semestre-service/semestres/1
-```
-### 🔹 Crear un semestre
-```bash
-curl -X POST http://localhost:8080/api/v1/semestre-service/semestres -H "Content-Type: application/json" -d "{\"activo\":true,\"fechaInicio\":\"2025-01-15\",\"fechaFin\":\"2025-06-15\",\"idPrograma\":1,\"numeroSemestre\":1}"
-```
-### 🔹 Actualizar un semestre
-```bash
-curl -X PUT http://localhost:8080/api/v1/semestre-service/semestres -H "Content-Type: application/json" -d "{\"id\":1,\"activo\":false,\"fechaInicio\":\"2025-01-20\",\"fechaFin\":\"2025-06-20\",\"idPrograma\":1,\"numeroSemestre\":1}"
-```
-### 🔹 Eliminar un semestre
-```bash
-curl -X DELETE http://localhost:8080/api/v1/semestre-service/semestres -H "Content-Type: application/json" -d "{\"id\":1}"
+curl -X GET http://localhost:8080/api/v1/usuarios/
+
 ```
 
-## 🗃️ Modelo de datos
+### 🔹 Obtener usuarios paginados
+
+```bash
+curl -X GET http://localhost:8080/api/v1/usuarios/page/0
+
+```
+
+### 🔹 Obtener un usuario por ID
+
+```bash
+curl -X GET http://localhost:8080/api/v1/usuarios/1
+
+```
+
+### 🔹 Registrar un usuario (EcoMerca2)
+
+*Nota: La contraseña se encriptará automáticamente en el servidor.*
+
+```bash
+curl -X POST http://localhost:8080/api/v1/usuarios/ \
+-H "Content-Type: application/json" \
+-d '{
+  "nombre": "Jose Alejandro",
+  "email": "jose@ecomerca.com",
+  "password": "password123",
+  "fechaNacimiento": "2000-10-25"
+}'
+
+```
+
+### 🔹 Actualizar perfil o favoritos
+
+```bash
+curl -X PUT http://localhost:8080/api/v1/usuarios/ \
+-H "Content-Type: application/json" \
+-d '{
+  "id": 1,
+  "nombre": "Jose Alejandro",
+  "email": "jose@ecomerca.com",
+  "password": "newpassword123",
+  "fechaNacimiento": "2000-10-25",
+  "alimentosFavoritos": ["Manzana", "Pollo", "Arroz", "Lentejas"]
+}'
+
+```
+
+### 🔹 Eliminar un usuario
+
+```bash
+curl -X DELETE http://localhost:8080/api/v1/usuarios/1
+
+```
+
+### 🔹 Actualizar listado de favoritos
+
+```bash
+curl -X PATCH http://localhost:8080/api/v1/usuarios/1/favoritos \
+-H "Content-Type: application/json" \
+-d '["Pollo", "Tomate", "Cerveza"]'
+```
+
+## 🗃️ Modelo de Datos (JPA)
 
 ```java
 @Entity
-@Getter
-@Setter
-public class Semestre {
+public class Usuarios {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull(message = "El campo 'activo' es obligatorio")
-    private Boolean activo;
+    private String nombre;
+    
+    @Column(unique = true)
+    private String email;
 
-    @NotNull(message = "La fecha de inicio es obligatoria")
-    private LocalDate fechaInicio;
+    private String password; // Almacenado como Hash BCrypt
 
-    @NotNull(message = "La fecha de fin es obligatoria")
-    private LocalDate fechaFin;
+    private LocalDate fechaNacimiento;
 
-    @NotNull(message = "El ID del programa es obligatorio")
-    private Long idPrograma;
-
-    @NotNull(message = "El número de semestre es obligatorio")
-    private Long numeroSemestre;
+    @ElementCollection
+    private List<String> alimentosFavoritos;
 }
+
 ```
-
-## 🧪 Datos de prueba (`import.sql`)
-
-```sql
--- Semestres de ejemplo
-INSERT INTO semestre (numero_semestre, id_programa, activo, fecha_inicio, fecha_fin) VALUES (1, 1001, TRUE, '2025-01-01', '2025-06-30');
-INSERT INTO semestre (numero_semestre, id_programa, activo, fecha_inicio, fecha_fin) VALUES (2, 1001, TRUE, '2025-07-01', '2025-12-15');
-INSERT INTO semestre (numero_semestre, id_programa, activo, fecha_inicio, fecha_fin) VALUES (1, 1002, FALSE, '2024-01-15', '2024-06-20');
-INSERT INTO semestre (numero_semestre, id_programa, activo, fecha_inicio, fecha_fin) VALUES (3, 1001, TRUE, '2026-01-05', '2026-06-25');
-INSERT INTO semestre (numero_semestre, id_programa, activo, fecha_inicio, fecha_fin) VALUES (2, 1003, TRUE, '2025-08-10', '2026-01-15');
-```
-
----

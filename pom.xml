@@ -11,14 +11,14 @@
         <relativePath/>
     </parent>
 
-    <groupId>co.empresa</groupId>
-    <artifactId>semestre-service</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>semestre-service</name>
-    <description>semestre-service</description>
+    <groupId>co.uceva</groupId>
+    <artifactId>usuarios-bd</artifactId>
+    <version>1.0</version>
+    <name>usuarios-bd</name>
+    <description>usuarios-bd</description>
 
     <properties>
-        <java.version>23</java.version>
+        <java.version>21</java.version>
     </properties>
 
     <dependencyManagement>
@@ -47,11 +47,26 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-
-        <!-- Eureka Client -->
         <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.11.5</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.11.5</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.11.5</version>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- PostgreSQL -->
@@ -113,7 +128,7 @@
                         <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
-                            <version>1.18.30</version>
+                            <version>1.18.44</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>

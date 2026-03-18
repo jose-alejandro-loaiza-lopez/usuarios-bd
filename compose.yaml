@@ -1,12 +1,14 @@
 services:
   postgres:
     image: 'postgres:latest'
+    volumes:
+      - ./postgres_data:/var/lib/postgresql
     environment:
-      - 'POSTGRES_DB=semestre'
+      - 'POSTGRES_DB=usuarios'
       - 'POSTGRES_PASSWORD=a1b2c3d4'
       - 'POSTGRES_USER=devdb'
     healthcheck:
-      test: [ "CMD-SHELL","pg_isready -U devdb -d semestre" ]
+      test: [ "CMD-SHELL","pg_isready -U devdb -d usuarios" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -15,16 +17,9 @@ services:
     networks:
       - red-backend-app
 
-  eureka-server:
-    image: joseloaiza01/eureka-server:latest
-    ports:
-      - "8761:8761"
-    networks:
-      -  red-backend-app
-
-  semestre-service:
-    image: joseloaiza01/semestre-service:latest
-    container_name: semestre-service
+  usuarios-service:
+    image: joseloaiza01/usuarios-bd-1.0:latest
+    container_name: usuarios-service
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -32,13 +27,10 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/semestre
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/usuarios
       - SPRING_DATASOURCE_USERNAME=devdb
       - SPRING_DATASOURCE_PASSWORD=a1b2c3d4
-      - JPA_DDL=create-drop
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
-    profiles:
-      - app
+      - JPA_DDL=update
     networks:
       - red-backend-app
 
