@@ -1,6 +1,7 @@
 package co.uceva.usuariosservice.domain.service;
 
 import co.uceva.usuariosservice.domain.model.LoginRequest;
+import co.uceva.usuariosservice.domain.model.LoginResponse;
 import co.uceva.usuariosservice.domain.model.UsuarioRequest;
 import co.uceva.usuariosservice.domain.model.Usuarios;
 import org.springframework.data.domain.Page;
@@ -17,7 +18,7 @@ public interface IUsuariosService {
     void delete(Long id, String emailFromToken);
     Optional<Usuarios> findById(Long id);
     Usuarios updateFavoritos(Long id, List<String> nuevosFavoritos, String emailFromToken);
-    String login(LoginRequest loginRequest);
+    LoginResponse login(LoginRequest loginRequest);
     Optional<Usuarios> findByEmail(String email);
     Usuarios update(Usuarios usuario, String emailFromToken);
     List<Usuarios> findAll();

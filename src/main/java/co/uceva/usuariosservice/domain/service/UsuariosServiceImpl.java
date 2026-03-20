@@ -4,6 +4,7 @@ import co.uceva.usuariosservice.domain.exception.AccesoDenegadoException;
 import co.uceva.usuariosservice.domain.exception.UsuarioExistenteException;
 import co.uceva.usuariosservice.domain.exception.UsuarioNoEncontradoException;
 import co.uceva.usuariosservice.domain.model.LoginRequest;
+import co.uceva.usuariosservice.domain.model.LoginResponse;
 import co.uceva.usuariosservice.domain.model.UsuarioRequest;
 import co.uceva.usuariosservice.domain.model.Usuarios;
 import co.uceva.usuariosservice.domain.repository.IUsuariosRepository;
@@ -147,15 +148,18 @@ public class UsuariosServiceImpl implements IUsuariosService {
     }
 
     @Override
-    public String login(LoginRequest loginRequest) {
+    public LoginResponse login(LoginRequest loginRequest) {
         // 1. Buscamos al usuario por email
         Usuarios usuario = usuariosRepository.findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new RuntimeException("Credenciales inválidas"));
 
-        // 2. Comparamos la contraseña escrita con la encriptada en BD
+        // 2. Comparamos la contraseña
         if (passwordEncoder.matches(loginRequest.getPassword(), usuario.getPassword())) {
-            // 3. Si es correcta, generamos el Token usando JwtUtils
-            return jwtUtils.generateToken(usuario);
+            // 3. Generamos el Token
+            String token = jwtUtils.generateToken(usuario);
+
+            // 4. Retornamos solo Token e ID
+            return new LoginResponse(token, usuario.getId());
         } else {
             throw new RuntimeException("Credenciales inválidas");
         }

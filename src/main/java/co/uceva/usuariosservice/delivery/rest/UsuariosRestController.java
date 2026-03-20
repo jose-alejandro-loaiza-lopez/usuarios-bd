@@ -5,6 +5,7 @@ import co.uceva.usuariosservice.domain.exception.PaginaSinUsuariosException;
 import co.uceva.usuariosservice.domain.exception.UsuarioNoEncontradoException;
 import co.uceva.usuariosservice.domain.exception.ValidationException;
 import co.uceva.usuariosservice.domain.model.LoginRequest;
+import co.uceva.usuariosservice.domain.model.LoginResponse;
 import co.uceva.usuariosservice.domain.model.UsuarioRequest;
 import co.uceva.usuariosservice.domain.model.Usuarios;
 import co.uceva.usuariosservice.domain.service.IUsuariosService;
@@ -14,7 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication; // IMPORTANTE
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
@@ -152,10 +153,11 @@ public class UsuariosRestController {
      */
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest loginRequest) {
-        String token = usuariosService.login(loginRequest);
+        LoginResponse authData = usuariosService.login(loginRequest);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("token", token);
+        response.put("token", authData.getToken());
+        response.put("id", authData.getId());
         response.put(MENSAJE, "Bienvenido a EcoMerca2");
 
         return ResponseEntity.ok(response);
