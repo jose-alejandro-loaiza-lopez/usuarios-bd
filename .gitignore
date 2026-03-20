@@ -5,6 +5,7 @@ target/
 !**/src/test/**/target/
 postgres_data
 .env
+Dockerfile
 
 ### STS ###
 .apt_generated
