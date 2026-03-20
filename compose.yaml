@@ -20,13 +20,10 @@ services:
     restart: always
     ports:
       - "8080:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-usuarios}
-      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-devdb}
-      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
       - JPA_DDL=update
       - PORT=8080
 
