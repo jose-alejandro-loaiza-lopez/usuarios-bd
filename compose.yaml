@@ -2,7 +2,7 @@ services:
   postgres:
     image: 'postgres:latest'
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-usuarios}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
