@@ -35,7 +35,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // 1. Extraemos el rol que guardamos en el Token (ej: "ROLE_USER")
                 String role = jwtUtils.getRoleFromToken(token);
-                if (role == null) role = "ROLE_USER";
 
                 // 2. Convertimos ese String en una "Authority" que Spring entienda
                 List<SimpleGrantedAuthority> authorities =
