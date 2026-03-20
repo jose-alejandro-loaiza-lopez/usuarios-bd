@@ -77,6 +77,22 @@ curl -X PATCH https://usuarios-bd-production.up.railway.app/api/v1/usuarios/6/fa
 
 ---
 
+## Comandos de Admin
+
+Listar todos los Usuarios:
+```bash
+curl -X GET https://usuarios-bd-production.up.railway.app/api/v1/usuarios/ \
+-H "Authorization: Bearer <TOKEN_DE_ADMIN>"
+```
+
+Listar Usuarios por páginas:
+```bash
+curl -X GET https://usuarios-bd-production.up.railway.app/api/v1/usuarios/page/0 \
+-H "Authorization: Bearer <TOKEN_DE_ADMIN>"
+```
+
+---
+
 ## 🛡️ Códigos de Respuesta Comunes
 
 | Código | Significado | Motivo |
