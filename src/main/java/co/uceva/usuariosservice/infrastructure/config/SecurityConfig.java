@@ -21,10 +21,10 @@ import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor // Importante para inyectar el filtro
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtFilter; // Inyectamos tu portero
+    private final JwtAuthenticationFilter jwtFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -35,18 +35,20 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Sin estado (JWT)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // RUTA LIBRE: El registro y el login DEBEN ser públicos
-                        .requestMatchers(HttpMethod.POST, "/api/v1/usuarios/").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/usuarios/login").permitAll()
-                        // SOLO ADMIN: Ver toda la lista de usuarios
+                        // 1. RUTAS PÚBLICAS: Registro y Login
+                        .requestMatchers(HttpMethod.POST, "/api/v1/usuarios/", "/api/v1/usuarios/login").permitAll()
+
+                        // 2. SOLO ADMIN: Ver la lista completa de todos los usuarios
                         .requestMatchers(HttpMethod.GET, "/api/v1/usuarios/").hasAuthority("ROLE_ADMIN")
-                        // EL RESTO: Solo requiere estar autenticado (USER o ADMIN)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/usuarios/page/**").hasAuthority("ROLE_ADMIN")
+
+                        // 3. TODO LO DEMÁS: Requiere Token (Buscar por ID, Actualizar, Borrar, Favoritos)
                         .anyRequest().authenticated()
                 )
-                // AQUÍ ACTIVAMOS EL FILTRO: Revisa el token antes de dejar pasar la petición
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
         return http.build();

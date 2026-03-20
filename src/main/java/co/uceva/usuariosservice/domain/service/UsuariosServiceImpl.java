@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Implementación del servicio de usuarios para EcoMerca2.
+ * Implementación del servicio de usuarios para EcoMerk2.
  * Gestiona la lógica de negocio, incluyendo la encriptación de credenciales.
  */
 @Service
@@ -43,7 +43,6 @@ public class UsuariosServiceImpl implements IUsuariosService {
         usuario.setNombre(request.getNombre());
         usuario.setEmail(request.getEmail());
         usuario.setFechaNacimiento(request.getFechaNacimiento());
-        // 🔐 encriptación
         usuario.setPassword(passwordEncoder.encode(request.getPassword()));
         usuario.setRole("ROLE_USER");
 
@@ -154,18 +153,20 @@ public class UsuariosServiceImpl implements IUsuariosService {
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
         // 1. Buscamos al usuario por email
+        // Aquí disparamos el error específico si el correo no está
         Usuarios usuario = usuariosRepository.findByEmail(loginRequest.getEmail())
-                .orElseThrow(() -> new RuntimeException("Credenciales inválidas"));
+                .orElseThrow(() -> new RuntimeException("El correo electrónico no se encuentra registrado"));
 
         // 2. Comparamos la contraseña
         if (passwordEncoder.matches(loginRequest.getPassword(), usuario.getPassword())) {
             // 3. Generamos el Token
             String token = jwtUtils.generateToken(usuario);
 
-            // 4. Retornamos solo Token e ID
+            // 4. Retornamos Token e ID
             return new LoginResponse(token, usuario.getId());
         } else {
-            throw new RuntimeException("Credenciales inválidas");
+            // Aquí disparamos el error si el correo existe pero la clave está mal
+            throw new RuntimeException("Contraseña incorrecta");
         }
     }
 }

@@ -38,8 +38,7 @@ public class UsuariosRestController {
     }
 
     /**
-     * Listar todos los usuarios de EcoMerca2.
-     * (Requiere Token, pero permite ver a otros según tu SecurityConfig actual)
+     * Listar todos los usuarios de EcoMerk2. Solo admins
      */
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> getUsuarios() {
@@ -53,7 +52,7 @@ public class UsuariosRestController {
     }
 
     /**
-     * Listar usuarios con paginación.
+     * Listar usuarios con paginación. Solo admins
      */
     @GetMapping("/page/{page}")
     public ResponseEntity<Object> index(@PathVariable Integer page) {
@@ -159,7 +158,7 @@ public class UsuariosRestController {
         Map<String, Object> response = new HashMap<>();
         response.put("token", authData.getToken());
         response.put("id", authData.getId());
-        response.put(MENSAJE, "Bienvenido a EcoMerca2");
+        response.put(MENSAJE, "Bienvenido a EcoMerk2");
 
         return ResponseEntity.ok(response);
     }

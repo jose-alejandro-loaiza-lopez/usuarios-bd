@@ -7,6 +7,10 @@ server:
   port: ${PORT:8080}
   address: 0.0.0.0
 
+jwt:
+  secret: ${JWT_SECRET:Secret_Key_Para_Local}
+  expiration: 86400000 # 1 día
+
 spring:
   application:
     name: usuarios-service

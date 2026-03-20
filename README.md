@@ -1,20 +1,19 @@
-# 🛒 EcoMerca2 - Usuarios Service
+# 🛒 EcoMerca2 - Usuarios Service API
 
-Este microservicio gestiona la autenticación, perfiles y preferencias de los usuarios de la plataforma **EcoMerca2**. Implementa seguridad basada en **JWT (JSON Web Tokens)** y control de acceso por roles (**RBAC**).
+Documentación de los endpoints del microservicio de usuarios desplegado en **Railway**.
 
-## 🚀 Requisitos Previos
-* **Docker & Docker Compose** instalados.
-* Base de datos PostgreSQL activa (contenedor `intellij-postgres-1`).
-* Servidor corriendo en `http://localhost:8080`.
+## 🚀 Información del Servidor
+- **URL Base:** `https://usuarios-bd-production.up.railway.app/api/v1/usuarios`
+- **Autenticación:** Bearer Token (JWT)
 
 ---
 
-## 🔐 Guía de Endpoints y Pruebas
+## 👥 Gestión de Usuarios
 
-### 1. Registro de Usuario (Público)
-Crea una nueva cuenta. Por defecto, el sistema asigna el rol `ROLE_USER`.
+### 1. Registrar Nuevo Usuario
+Crea una cuenta nueva. Por defecto se asigna el rol `ROLE_USER`.
 ```bash
-curl -X POST http://localhost:8080/api/v1/usuarios/ \
+curl -X POST https://usuarios-bd-production.up.railway.app/api/v1/usuarios/ \
 -H "Content-Type: application/json" \
 -d '{
   "nombre": "Jose Alejandro",
@@ -25,9 +24,9 @@ curl -X POST http://localhost:8080/api/v1/usuarios/ \
 ```
 
 ### 2. Inicio de Sesión (Login)
-Obtén tu token de acceso. **Nota:** Debes copiar el `token` devuelto para los siguientes pasos.
+Obtiene el **ID** del usuario y el **Token JWT** para peticiones protegidas.
 ```bash
-curl -X POST http://localhost:8080/api/v1/usuarios/login \
+curl -X POST https://usuarios-bd-production.up.railway.app/api/v1/usuarios/login \
 -H "Content-Type: application/json" \
 -d '{
   "email": "jose@ecomerca.com",
@@ -35,50 +34,66 @@ curl -X POST http://localhost:8080/api/v1/usuarios/login \
 }'
 ```
 
-### 3. Listar Usuarios (Solo ADMIN)
-Este endpoint requiere un token con `ROLE_ADMIN`. Si usas un token de usuario normal, recibirás un `403 Forbidden`.
+### 3. Obtener Perfil de Usuario
+Requiere token. Solo accesible por el dueño de la cuenta o un administrador.
 ```bash
-curl -X GET http://localhost:8080/api/v1/usuarios/ \
--H "Authorization: Bearer <TU_TOKEN_AQUI>"
+curl -X GET https://usuarios-bd-production.up.railway.app/api/v1/usuarios/6 \
+-H "Authorization: Bearer <TU_TOKEN>"
 ```
 
-### 4. Sincronizar Favoritos (Propietario/Admin)
-Permite guardar una lista de strings con los productos preferidos.
+### 4. Actualizar Perfil
+Actualiza los datos básicos. El campo `role` y `alimentosFavoritos` se omiten por seguridad en este endpoint.
 ```bash
-curl -X PATCH http://localhost:8080/api/v1/usuarios/1/favoritos \
--H "Authorization: Bearer <TU_TOKEN_AQUI>" \
--H "Content-Type: application/json" \
--d '["Aguacate", "Cafe del Valle", "Arepas"]'
-```
-
-### 5. Actualizar Perfil (Propietario/Admin)
-Actualiza datos básicos. El campo `role` es de **solo lectura** y no se puede modificar por este medio.
-```bash
-curl -X PUT http://localhost:8080/api/v1/usuarios/ \
--H "Authorization: Bearer <TU_TOKEN_AQUI>" \
+curl -X PUT https://usuarios-bd-production.up.railway.app/api/v1/usuarios/6 \
+-H "Authorization: Bearer <TU_TOKEN>" \
 -H "Content-Type: application/json" \
 -d '{
-  "id": 1,
   "nombre": "Jose Alejandro Actualizado",
-  "fechaNacimiento": "2000-10-25",
-  "password": "nuevapassword123"
+  "email": "jose.actualizado@ecomerca.com",
+  "password": "nuevapassword123",
+  "fechaNacimiento": "2000-10-25"
 }'
 ```
 
-### 6. Eliminar Cuenta (Propietario/Admin)
-Elimina el registro de la base de datos. Si un usuario intenta borrar a otro sin ser Admin, el sistema lanzará una `AccesoDenegadoException`.
+### 5. Eliminar Cuenta
+Borra al usuario y sus registros asociados en la tabla de favoritos (borrado en cascada).
 ```bash
-curl -X DELETE http://localhost:8080/api/v1/usuarios/1 \
--H "Authorization: Bearer <TU_TOKEN_AQUI>"
+curl -X DELETE https://usuarios-bd-production.up.railway.app/api/v1/usuarios/6 \
+-H "Authorization: Bearer <TU_TOKEN>"
 ```
 
 ---
 
-## 🛠️ Estructura de Seguridad
+## 🍎 Gestión de Favoritos
 
-| Rol | Permisos |
-| :--- | :--- |
-| **Anónimo** | Registro y Login. |
-| **ROLE_USER** | Ver/Editar/Borrar su **propio** perfil y favoritos. |
-| **ROLE_ADMIN** | Todo lo anterior + Listar todos los usuarios y gestionar perfiles ajenos. |
+### 6. Sincronizar Alimentos Favoritos
+Endpoint tipo `PATCH` para actualizar la lista de productos preferidos del usuario.
+```bash
+curl -X PATCH https://usuarios-bd-production.up.railway.app/api/v1/usuarios/6/favoritos \
+-H "Authorization: Bearer <TU_TOKEN>" \
+-H "Content-Type: application/json" \
+-d '["Aguacate", "Cafe del Valle", "Arepas"]'
+```
 
+---
+
+## 🛡️ Códigos de Respuesta Comunes
+
+| Código | Significado | Motivo |
+| :--- | :--- | :--- |
+| **200 OK** | Éxito | La operación se realizó correctamente. |
+| **201 Created** | Creado | El usuario fue registrado con éxito. |
+| **400 Bad Request** | Error de Validación | Faltan campos obligatorios o el formato es incorrecto. |
+| **401 Unauthorized** | No autorizado | El token ha expirado o no se envió el header Authorization. |
+| **403 Forbidden** | Acceso Denegado | Intentaste modificar o eliminar un usuario que no es el tuyo sin ser ADMIN. |
+| **404 Not Found** | No encontrado | El ID del usuario no existe en la base de datos. |
+| **500 Internal Error** | Error de Servidor | Error de credenciales inválidas o falla en la DB. |
+
+---
+
+### 💡 Notas de Implementación
+- Las contraseñas se almacenan encriptadas con **BCrypt**.
+- Se utiliza **Habeas Data** para asegurar que los correos electrónicos sean únicos en el sistema.
+- La arquitectura sigue el patrón **DTO** para evitar la exposición de campos sensibles como el rol durante las actualizaciones.
+
+---
