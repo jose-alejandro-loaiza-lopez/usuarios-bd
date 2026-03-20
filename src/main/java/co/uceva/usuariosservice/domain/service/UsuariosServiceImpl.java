@@ -83,31 +83,35 @@ public class UsuariosServiceImpl implements IUsuariosService {
 
     @Override
     @Transactional
-    public Usuarios update(Usuarios usuario, String emailFromToken) {
+    public Usuarios update(Long id, UsuarioRequest request, String emailFromToken) {
         // 1. Buscamos al usuario que opera (quien tiene el token)
         Usuarios operando = usuariosRepository.findByEmail(emailFromToken)
-                .orElseThrow(() -> new AccesoDenegadoException("Usuario no encontrado"));
+                .orElseThrow(() -> new AccesoDenegadoException("Sesión inválida"));
 
-        // 2. Buscamos el registro real en la BD
-        Usuarios existente = usuariosRepository.findById(usuario.getId())
-                .orElseThrow(() -> new UsuarioNoEncontradoException(usuario.getId()));
+        // 2. Buscamos el registro real en la BD usando el ID de la URL
+        Usuarios existente = usuariosRepository.findById(id)
+                .orElseThrow(() -> new UsuarioNoEncontradoException(id));
 
-        // 3. Verificamos: ¿Es el dueño O es un admin?
+        // 3. Verificación de seguridad: ¿Es dueño O es admin?
         boolean esDueno = existente.getEmail().equals(emailFromToken);
         boolean esAdmin = operando.getRole().equals("ROLE_ADMIN");
 
         if (esDueno || esAdmin) {
-            // 4. PASO VITAL: Solo actualizamos los campos permitidos
-            existente.setNombre(usuario.getNombre());
-            existente.setFechaNacimiento(usuario.getFechaNacimiento());
 
-            // No tocamos el email ni el role por seguridad aquí
-
-            if (usuario.getPassword() != null && !usuario.getPassword().isEmpty()) {
-                existente.setPassword(passwordEncoder.encode(usuario.getPassword()));
+            // 4. Validación de Email (Si intenta cambiarlo)
+            if (!existente.getEmail().equals(request.getEmail())) {
+                if (usuariosRepository.findByEmail(request.getEmail()).isPresent()) {
+                    throw new UsuarioExistenteException(request.getEmail());
+                }
+                existente.setEmail(request.getEmail());
             }
 
-            // Guardamos el objeto 'existente' que ya tiene su ID y su ROL intactos
+            // 5. Actualizamos los demás campos del DTO
+            existente.setNombre(request.getNombre());
+            existente.setFechaNacimiento(request.getFechaNacimiento());
+            existente.setPassword(passwordEncoder.encode(request.getPassword()));
+
+            // El ID, ROL y FAVORITOS se mantienen intactos en 'existente'
             return usuariosRepository.save(existente);
         } else {
             throw new AccesoDenegadoException("No tienes permiso para modificar este perfil.");

@@ -98,9 +98,10 @@ public class UsuariosRestController {
      * Actualizar perfil del usuario.
      * PROTECCIÓN: Solo el dueño puede actualizar su perfil.
      */
-    @PutMapping("/")
+    @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> update(
-            @Valid @RequestBody Usuarios usuario,
+            @PathVariable Long id,
+            @Valid @RequestBody UsuarioRequest request, // Usamos tu DTO existente
             BindingResult result,
             Authentication auth) {
 
@@ -108,11 +109,11 @@ public class UsuariosRestController {
             throw new ValidationException(result);
         }
 
-        Usuarios usuarioActualizado = usuariosService.update(usuario, auth.getName());
+        Usuarios usuarioActualizado = usuariosService.update(id, request, auth.getName());
 
         Map<String, Object> response = new HashMap<>();
-        response.put(MENSAJE, "Perfil actualizado con éxito.");
-        response.put(USUARIO, usuarioActualizado);
+        response.put("mensaje", "Perfil actualizado con éxito.");
+        response.put("usuario", usuarioActualizado);
         return ResponseEntity.ok(response);
     }
 

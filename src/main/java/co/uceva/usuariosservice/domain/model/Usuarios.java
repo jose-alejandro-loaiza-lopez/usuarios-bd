@@ -37,7 +37,7 @@ public class Usuarios {
     @Column(name = "fecha_nacimiento")
     private LocalDate fechaNacimiento;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "usuario_alimentos_favoritos", joinColumns = @JoinColumn(name = "usuario_id"))
     @Column(name = "alimento")
     private List<String> alimentosFavoritos = new ArrayList<>();

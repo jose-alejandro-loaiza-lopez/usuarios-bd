@@ -20,7 +20,7 @@ public interface IUsuariosService {
     Usuarios updateFavoritos(Long id, List<String> nuevosFavoritos, String emailFromToken);
     LoginResponse login(LoginRequest loginRequest);
     Optional<Usuarios> findByEmail(String email);
-    Usuarios update(Usuarios usuario, String emailFromToken);
+    Usuarios update(Long id, UsuarioRequest usuario, String emailFromToken);
     List<Usuarios> findAll();
     Page<Usuarios> findAll(Pageable pageable);
 }
