@@ -13,8 +13,16 @@ spring:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      # Tiempo máximo que espera por una conexión del pool (30 seg)
+      connection-timeout: 30000
+      # Tiempo que espera para fallar si la DB no está disponible al arrancar
+      # Un valor de -1 o uno alto ayuda a que no se cierre la app de inmediato
+      initialization-fail-timeout: 60000
+      # Pruebas de vida de la conexión
+      keepalive-time: 30000
   jpa:
-    # 1. Cambia 'create-drop' por 'update' para que los datos no se borren al apagar
     hibernate:
       ddl-auto: ${JPA_DDL:update}
     defer-datasource-initialization: false
@@ -23,13 +31,14 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-    show-sql: true # Lo activamos para ver si los inserts funcionan
+        jdbc.batch_size: 20
+        order_inserts: true
+        order_updates: true
+    show-sql: true
 
-  # 3. FORZAR la ejecución del script SQL siempre
   sql:
     init:
       mode: never
-      # data-locations: classpath:import.sql
 
   main:
     allow-circular-references: true
