@@ -3,10 +3,7 @@ package co.uceva.usuariosservice.domain.service;
 import co.uceva.usuariosservice.domain.exception.AccesoDenegadoException;
 import co.uceva.usuariosservice.domain.exception.UsuarioExistenteException;
 import co.uceva.usuariosservice.domain.exception.UsuarioNoEncontradoException;
-import co.uceva.usuariosservice.domain.model.LoginRequest;
-import co.uceva.usuariosservice.domain.model.LoginResponse;
-import co.uceva.usuariosservice.domain.model.UsuarioRequest;
-import co.uceva.usuariosservice.domain.model.Usuarios;
+import co.uceva.usuariosservice.domain.model.*;
 import co.uceva.usuariosservice.domain.repository.IUsuariosRepository;
 import co.uceva.usuariosservice.infrastructure.security.JwtUtils;
 import lombok.RequiredArgsConstructor;
@@ -131,7 +128,7 @@ public class UsuariosServiceImpl implements IUsuariosService {
 
     @Override
     @Transactional
-    public Usuarios updateFavoritos(Long id, List<String> nuevosFavoritos, String emailFromToken) {
+    public Usuarios updateFavoritos(Long id, List<ProductoFavorito> nuevosFavoritos, String emailFromToken) {
         Usuarios operando = usuariosRepository.findByEmail(emailFromToken)
                 .orElseThrow(() -> new AccesoDenegadoException("Usuario no encontrado"));
 
@@ -142,7 +139,7 @@ public class UsuariosServiceImpl implements IUsuariosService {
         boolean esAdmin = operando.getRole().equals("ROLE_ADMIN");
 
         if (esDueno || esAdmin) {
-            usuario.setAlimentosFavoritos(nuevosFavoritos);
+            usuario.setFavoritos(nuevosFavoritos);
         } else {
             throw new AccesoDenegadoException("No puedes modificar los favoritos de otra persona.");
         }

@@ -4,10 +4,7 @@ import co.uceva.usuariosservice.domain.exception.NoHayUsuariosException;
 import co.uceva.usuariosservice.domain.exception.PaginaSinUsuariosException;
 import co.uceva.usuariosservice.domain.exception.UsuarioNoEncontradoException;
 import co.uceva.usuariosservice.domain.exception.ValidationException;
-import co.uceva.usuariosservice.domain.model.LoginRequest;
-import co.uceva.usuariosservice.domain.model.LoginResponse;
-import co.uceva.usuariosservice.domain.model.UsuarioRequest;
-import co.uceva.usuariosservice.domain.model.Usuarios;
+import co.uceva.usuariosservice.domain.model.*;
 import co.uceva.usuariosservice.domain.service.IUsuariosService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -136,7 +133,7 @@ public class UsuariosRestController {
     @PatchMapping("/{id}/favoritos")
     public ResponseEntity<Map<String, Object>> actualizarFavoritos(
             @PathVariable Long id,
-            @RequestBody List<String> favoritos,
+            @RequestBody List<ProductoFavorito> favoritos,
             Authentication auth) {
 
         Usuarios usuarioActualizado = usuariosService.updateFavoritos(id, favoritos, auth.getName());
