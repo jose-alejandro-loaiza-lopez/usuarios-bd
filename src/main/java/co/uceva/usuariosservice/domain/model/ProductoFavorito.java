@@ -15,5 +15,4 @@ public class ProductoFavorito {
     private String tienda;
     private String imagen;
     private String link;
-    private String marca;
 }
