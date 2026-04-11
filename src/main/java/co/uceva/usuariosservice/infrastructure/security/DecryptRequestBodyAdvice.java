@@ -51,6 +51,7 @@ public class DecryptRequestBodyAdvice extends RequestBodyAdviceAdapter {
         // 4. Desciframos el objeto real (User, Producto, etc.)
         Object decryptedObject = criptoService.descifrarConLlave(encryptedDto, (Class<?>) targetType, aesKeyDescifrada, ivLimpio);
 
+        System.out.println("DEBUG - JSON Descifrado: " + objectMapper.writeValueAsString(decryptedObject));
         // 5. Convertimos a JSON normal para que el Controller lo reciba
         byte[] decryptedData = objectMapper.writeValueAsBytes(decryptedObject);
 
