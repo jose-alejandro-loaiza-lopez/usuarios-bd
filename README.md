@@ -69,10 +69,22 @@ curl -X DELETE https://usuarios-bd-production.up.railway.app/api/v1/usuarios/6 \
 ### 6. Sincronizar Alimentos Favoritos
 Endpoint tipo `PATCH` para actualizar la lista de productos preferidos del usuario.
 ```bash
-curl -X PATCH https://usuarios-bd-production.up.railway.app/api/v1/usuarios/6/favoritos \
--H "Authorization: Bearer <TU_TOKEN>" \
--H "Content-Type: application/json" \
--d '["Aguacate", "Cafe del Valle", "Arepas"]'
+curl -X PATCH https://usuarios-bd-production.up.railway.app/api/v1/usuarios/<ID_USUARIO>/favoritos -H "Authorization: Bearer <TOKEN_USUARIO>" -H "Content-Type: application/json" -d '[
+{
+"nombre": "Aceite de Girasol 1L",
+"precio": "$12.500",
+"tienda": "Exito",
+"imagen": "https://url-de-la-imagen.jpg",
+"link": "https://exito.com/producto/aceite"
+},
+{
+"nombre": "Arroz Integral 500g",
+"precio": "$3.200",
+"tienda": "Olimpica",
+"imagen": "https://url-de-la-imagen2.jpg",
+"link": "https://olimpica.com/producto/arroz"
+}
+]'
 ```
 
 ---
