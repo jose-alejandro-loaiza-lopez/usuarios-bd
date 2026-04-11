@@ -1,6 +1,7 @@
 package co.uceva.usuariosservice.infrastructure.security;
 
 import co.uceva.usuariosservice.domain.model.EncryptedRequestDTO;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -81,13 +82,15 @@ public class CriptoService {
     }
 
     // Y este para descifrar usando la llave que ya tenemos
-    public <T> T descifrarConLlave(EncryptedRequestDTO dto, Class<T> claseDestino, byte[] aesKey, byte[] iv) {
+    public Object descifrarConLlave(EncryptedRequestDTO dto, JavaType targetType, byte[] aesKey, byte[] iv) {
         try {
             byte[] dataEncrypted = java.util.Base64.getDecoder().decode(dto.getEncryptedData());
             byte[] dataDecrypted = aesWrapper.decryptCBC(dataEncrypted, aesKey, iv);
-            return objectMapper.readValue(new String(dataDecrypted), claseDestino);
+
+            // Aquí está el truco: readValue acepta JavaType para saber si es List, Map, u Objeto
+            return objectMapper.readValue(new String(dataDecrypted), targetType);
         } catch (Exception e) {
-            throw new RuntimeException("Error al descifrar datos con AES: " + e.getMessage());
+            throw new RuntimeException("Error al descifrar datos genéricos con AES: " + e.getMessage());
         }
     }
 }

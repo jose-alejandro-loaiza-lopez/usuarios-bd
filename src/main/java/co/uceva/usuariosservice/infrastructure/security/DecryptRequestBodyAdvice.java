@@ -1,6 +1,7 @@
 package co.uceva.usuariosservice.infrastructure.security;
 
 import co.uceva.usuariosservice.domain.model.EncryptedRequestDTO;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpInputMessage;
@@ -35,27 +36,20 @@ public class DecryptRequestBodyAdvice extends RequestBodyAdviceAdapter {
     @Override
     public HttpInputMessage beforeBodyRead(HttpInputMessage inputMessage, MethodParameter parameter, Type targetType, Class<? extends HttpMessageConverter<?>> converterType) throws IOException {
         try {
-            // Log para ver qué llega (Solo para depuración)
-            System.out.println("Interceptando petición para: " + targetType.getTypeName());
-
-            // 1. Leemos el JSON cifrado que viene de Flutter
             EncryptedRequestDTO encryptedDto = objectMapper.readValue(inputMessage.getBody(), EncryptedRequestDTO.class);
 
-            // 2. ¡OJO AQUÍ!: Debemos descifrar la llave AES antes de guardarla en el contexto
-            // para que el ResponseBodyAdvice pueda usar la llave real (byte[]), no el texto cifrado.
-
-            // Usamos el método de tu CriptoService para obtener las llaves reales
             byte[] aesKeyDescifrada = criptoService.obtenerLlaveAesLimpia(encryptedDto.getEncryptedAesKey());
             byte[] ivLimpio = java.util.Base64.getDecoder().decode(encryptedDto.getIv());
 
-            // 3. Guardamos en el ThreadLocal para que esté disponible en la RESPUESTA
             CriptoContextHolder.setContext(aesKeyDescifrada, ivLimpio);
 
-            // 4. Desciframos el objeto real (User, Producto, etc.)
-            Object decryptedObject = criptoService.descifrarConLlave(encryptedDto, (Class<?>) targetType, aesKeyDescifrada, ivLimpio);
+            // 1. Obtenemos el tipo real que espera el Controller (puede ser List<ProductoFavorito>)
+            JavaType javaType = objectMapper.getTypeFactory().constructType(targetType);
 
-            System.out.println("DEBUG - JSON Descifrado: " + objectMapper.writeValueAsString(decryptedObject));
-            // 5. Convertimos a JSON normal para que el Controller lo reciba
+            // 2. Llamamos al nuevo método pasándole el javaType
+            Object decryptedObject = criptoService.descifrarConLlave(encryptedDto, javaType, aesKeyDescifrada, ivLimpio);
+
+            // 3. Convertimos de nuevo a bytes para que Spring siga su camino
             byte[] decryptedData = objectMapper.writeValueAsBytes(decryptedObject);
 
             return new HttpInputMessage() {
@@ -63,16 +57,13 @@ public class DecryptRequestBodyAdvice extends RequestBodyAdviceAdapter {
                 public InputStream getBody() throws IOException {
                     return new ByteArrayInputStream(decryptedData);
                 }
-
                 @Override
                 public HttpHeaders getHeaders() {
                     return inputMessage.getHeaders();
                 }
             };
         } catch (Exception e) {
-            System.err.println("ERROR CRÍTICO EN DESCIFRADO: " + e.getMessage());
-            e.printStackTrace();
-            throw new IOException("Error procesando cuerpo cifrado: " + e.getMessage());
+            throw new RuntimeException("Error descifrando lista/objeto: " + e.getMessage());
         }
     }
 }
