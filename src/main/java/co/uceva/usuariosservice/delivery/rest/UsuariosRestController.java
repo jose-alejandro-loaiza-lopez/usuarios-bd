@@ -6,6 +6,8 @@ import co.uceva.usuariosservice.domain.exception.UsuarioNoEncontradoException;
 import co.uceva.usuariosservice.domain.exception.ValidationException;
 import co.uceva.usuariosservice.domain.model.*;
 import co.uceva.usuariosservice.domain.service.IUsuariosService;
+import co.uceva.usuariosservice.infrastructure.security.CriptoService;
+import co.uceva.usuariosservice.infrastructure.security.RsaEngine;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,13 +27,19 @@ import java.util.Map;
 public class UsuariosRestController {
 
     private final IUsuariosService usuariosService;
+    private final CriptoService criptoService;
+    private final RsaEngine rsaEngine;
 
     private static final String MENSAJE = "mensaje";
     private static final String USUARIO = "usuario";
     private static final String USUARIOS = "usuarios";
 
-    public UsuariosRestController(IUsuariosService usuariosService) {
+    public UsuariosRestController(IUsuariosService usuariosService,
+                                  CriptoService criptoService,
+                                  RsaEngine rsaEngine) {
         this.usuariosService = usuariosService;
+        this.criptoService = criptoService;
+        this.rsaEngine = rsaEngine;
     }
 
     /**
@@ -157,6 +165,15 @@ public class UsuariosRestController {
         response.put("id", authData.getId());
         response.put(MENSAJE, "Bienvenido a EcoMerk2");
 
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/public-key")
+    public ResponseEntity<Map<String, String>> getPublicKey() {
+        Map<String, String> response = new HashMap<>();
+        // Enviamos n y e en Hexadecimal para que Flutter los procese fácil
+        response.put("n", rsaEngine.getN().toString(16));
+        response.put("e", rsaEngine.getE().toString(16));
         return ResponseEntity.ok(response);
     }
 }
