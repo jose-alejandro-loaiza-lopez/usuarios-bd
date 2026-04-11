@@ -39,6 +39,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 1. RUTAS PÚBLICAS: Registro y Login
                         .requestMatchers(HttpMethod.POST, "/api/v1/usuarios/", "/api/v1/usuarios/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/usuarios/public-key").permitAll()
 
                         // 2. SOLO ADMIN: Ver la lista completa de todos los usuarios
                         .requestMatchers(HttpMethod.GET, "/api/v1/usuarios/").hasAuthority("ROLE_ADMIN")
@@ -57,10 +58,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // ⚠️ Permitir todo para que la App móvil no sea bloqueada
-        configuration.setAllowedOrigins(Arrays.asList("*"));
+        configuration.setAllowedOriginPatterns(Arrays.asList("*")); // Mejor que setAllowedOrigins("*") en versiones nuevas
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+
+        // Añadimos Cache-Control y Pragma por si acaso para las peticiones de llaves
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control", "Pragma"));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
