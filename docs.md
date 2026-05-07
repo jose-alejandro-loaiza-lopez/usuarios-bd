@@ -104,7 +104,8 @@ Base: `/usuarios`
 - **PATCH /usuarios/{id}/favoritos** — Sincronizar favoritos (owner o admin)
   - Autenticación: SÍ (solo dueño o admin)
   - Request JSON: array de `ProductoFavorito` (estructura en backend):
-    - `nombre`, `precio`, `tienda`, `imagen`, `link` (todos strings)
+    - `link` (string) — URL o identificador del producto
+    - `notificaciones` (boolean) — si el usuario activó las notificaciones para ese producto
   - Response 200:
     - `usuario`: usuario con `favoritos` sincronizados
     - `mensaje`: confirmación
