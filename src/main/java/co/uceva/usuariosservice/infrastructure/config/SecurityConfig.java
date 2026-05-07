@@ -41,11 +41,17 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/usuarios/", "/api/v1/usuarios/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/usuarios/public-key").permitAll()
 
-                        // 2. SOLO ADMIN: Ver la lista completa de todos los usuarios
+                        // 2. RUTA PÚBLICA: Refresh Token (no necesita JWT, valida el refresh token internamente)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh").permitAll()
+
+                        // 3. SOLO ADMIN: Ver la lista completa de todos los usuarios
                         .requestMatchers(HttpMethod.GET, "/api/v1/usuarios/").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/usuarios/page/**").hasAuthority("ROLE_ADMIN")
 
-                        // 3. TODO LO DEMÁS: Requiere Token (Buscar por ID, Actualizar, Borrar, Favoritos)
+                        // 4. CHAT: Requiere autenticación (cualquier usuario logueado)
+                        .requestMatchers("/api/v1/chat/**").authenticated()
+
+                        // 5. TODO LO DEMÁS: Requiere Token (Buscar por ID, Actualizar, Borrar, Favoritos)
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

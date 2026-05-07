@@ -10,6 +10,8 @@ server:
 jwt:
   secret: ${JWT_SECRET:Secret_Key_Para_Local}
   expiration: 86400000 # 1 día
+  refresh-expiration: 604800000 # 7 días
+  refresh-secret: ${JWT_REFRESH_SECRET:default_refresh_secret}
 
 spring:
   application:

@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+
 /**
  * Implementación del servicio de usuarios para EcoMerk2.
  * Gestiona la lógica de negocio, incluyendo la encriptación de credenciales.
@@ -27,6 +28,7 @@ public class UsuariosServiceImpl implements IUsuariosService {
     private final IUsuariosRepository usuariosRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
+    private final IRefreshTokenService refreshTokenService;
 
     @Override
     @Transactional
@@ -148,6 +150,7 @@ public class UsuariosServiceImpl implements IUsuariosService {
     }
 
     @Override
+    @Transactional
     public LoginResponse login(LoginRequest loginRequest) {
         // 1. Buscamos al usuario por email
         // Aquí disparamos el error específico si el correo no está
@@ -156,11 +159,14 @@ public class UsuariosServiceImpl implements IUsuariosService {
 
         // 2. Comparamos la contraseña
         if (passwordEncoder.matches(loginRequest.getPassword(), usuario.getPassword())) {
-            // 3. Generamos el Token
+            // 3. Generamos el Access Token JWT
             String token = jwtUtils.generateToken(usuario);
 
-            // 4. Retornamos Token e ID
-            return new LoginResponse(token, usuario.getId());
+            // 4. Generamos el Refresh Token (revoca los anteriores automáticamente)
+            String refreshTokenPlain = refreshTokenService.crearRefreshToken(usuario);
+
+            // 5. Retornamos Access Token, Refresh Token e ID
+            return new LoginResponse(token, refreshTokenPlain, usuario.getId());
         } else {
             // Aquí disparamos el error si el correo existe pero la clave está mal
             throw new RuntimeException("Contraseña incorrecta");

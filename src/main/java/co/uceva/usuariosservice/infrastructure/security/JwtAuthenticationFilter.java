@@ -27,8 +27,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // 🛡️ Si es login, registro o llave pública, saltamos el filtro de una vez
-        if (path.contains("/login") || path.contains("/public-key") || (path.endsWith("/usuarios/") && request.getMethod().equals("POST"))) {
+        // 🛡️ Si es login, registro, llave pública o refresh token, saltamos el filtro de una vez
+        if (path.contains("/login") || path.contains("/public-key") || path.contains("/auth/refresh") || (path.endsWith("/usuarios/") && request.getMethod().equals("POST"))) {
             filterChain.doFilter(request, response);
             return;
         }
