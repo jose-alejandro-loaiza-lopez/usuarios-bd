@@ -13,9 +13,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ProductoFavorito {
 
-    @NotBlank(message = "El link del producto es obligatorio")
-    @Column(name = "link", nullable = false, columnDefinition = "TEXT")
-    private String link;
+    @NotBlank(message = "El productId del producto es obligatorio")
+    @Column(name = "product_id", nullable = false, columnDefinition = "TEXT")
+    private String productId;
 
     @Column(name = "notificaciones", nullable = false)
     private Boolean notificaciones = false;

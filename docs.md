@@ -104,7 +104,7 @@ Base: `/usuarios`
 - **PATCH /usuarios/{id}/favoritos** — Sincronizar favoritos (owner o admin)
   - Autenticación: SÍ (solo dueño o admin)
   - Request JSON: array de `ProductoFavorito` (estructura en backend):
-    - `link` (string) — URL o identificador del producto
+    - `productId` (string) — identificador del producto; ahora se usan ids en vez de enlaces
     - `notificaciones` (boolean) — si el usuario activó las notificaciones para ese producto
   - Response 200:
     - `usuario`: usuario con `favoritos` sincronizados
@@ -159,6 +159,40 @@ Base: `/chat`
       -H "Authorization: Bearer <ACCESS_TOKEN>" \
       -H "Content-Type: application/json" \
       -d '{"contenido":"Hola IA, ¿qué debo hacer?","esIa":false}'
+    ```
+
+**7) Productos (historial de precios)**  
+Base: `/productos`
+
+- **GET /productos/{productId}/precios** — Obtener historial de precios de un producto
+  - Autenticación: NO
+  - Path params:
+    - `productId` (string) — identificador del producto
+  - Response 200:
+    - `productId` (string)
+    - `historial` (array) — lista de objetos `PrecioHistorico` ordenada por `fechaGuardado` descendente:
+      - `id` (number)
+      - `productId` (string)
+      - `precio` (number)
+      - `fechaGuardado` (string, ISO 8601)
+  - Nota: si no hay precios, devuelve `historial: []`.
+  - Ejemplo:
+    ```bash
+    curl http://localhost:8080/api/v1/productos/12345/precios
+    ```
+
+- **POST /productos/{productId}/precios** — Agregar nuevo precio al historial
+  - Autenticación: NO
+  - Request JSON (`PrecioRequest`):
+    - `precio` (number) — obligatorio
+  - Response 201:
+    - `mensaje`: "Precio agregado correctamente"
+    - `precio`: objeto `PrecioHistorico` guardado (`id`, `productId`, `precio`, `fechaGuardado`)
+  - Ejemplo:
+    ```bash
+    curl -X POST http://localhost:8080/api/v1/productos/12345/precios \
+      -H "Content-Type: application/json" \
+      -d '{"precio": 123400.0}'
     ```
 
 **4) Formatos de respuesta de error (comunes)**
