@@ -50,9 +50,14 @@ Base: `/usuarios`
     - `email`, `password`
   - Response 200:
     - `token` (string) — access JWT
-    - `refreshToken` (string)
+    - `refreshToken` (string) — refresh token (texto plano) que debe guardarse en el cliente
     - `id` (number) — id del usuario
     - `mensaje` (string)
+  - Nota: El login devuelve tanto `token` como `refreshToken`. El cliente debe almacenar
+    el `refreshToken` de forma segura y, cuando el `access token` expire, llamar a
+    `POST /auth/refresh` con el `refreshToken` para recibir un nuevo `token` y un nuevo
+    `refreshToken` (rotación). El backend almacena sólo un hash del `refreshToken` y
+    revoca tokens anteriores para prevenir reutilización.
   - Ejemplo:
     ```bash
     curl -X POST http://localhost:8080/api/v1/usuarios/login \
@@ -161,7 +166,7 @@ Base: `/chat`
       -d '{"contenido":"Hola IA, ¿qué debo hacer?","esIa":false}'
     ```
 
-**7) Productos (historial de precios)**  
+**4) Productos (historial de precios)**  
 Base: `/productos`
 
 - **GET /productos/{productId}/precios** — Obtener historial de precios de un producto
@@ -195,7 +200,7 @@ Base: `/productos`
       -d '{"precio": 123400.0}'
     ```
 
-**4) Formatos de respuesta de error (comunes)**
+**5) Formatos de respuesta de error (comunes)**
 - `400 Bad Request` — validación de campos:
   ```json
   {
@@ -223,7 +228,7 @@ Base: `/productos`
   ```
 - `500 Internal Server Error` — errores generales (incluye mensajes de excepción).
 
-**5) Esquema de la tabla de mensajes (DDL sugerido)**
+**6) Esquema de la tabla de mensajes (DDL sugerido)**
 - Recomendado si la BD parte desde cero (Postgres):
   ```sql
   CREATE TABLE mensajes_chat (
@@ -234,7 +239,7 @@ Base: `/productos`
   );
   ```
 
-**6) Notas de seguridad / recomendaciones para frontend**
+**7) Notas de seguridad / recomendaciones para frontend**
 - Guardado de tokens:
   - `access token` (JWT): preferiblemente mantener en memoria y reenviar en `Authorization` header.
   - `refresh token`: idealmente en `HttpOnly`, `Secure` cookie (si backend lo soporta) para reducir riesgo XSS; si no, guardarlo en almacenamiento seguro del cliente con precaución.

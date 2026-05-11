@@ -162,6 +162,7 @@ public class UsuariosRestController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("token", authData.getToken());
+        response.put("refreshToken", authData.getRefreshToken());
         response.put("id", authData.getId());
         response.put(MENSAJE, "Bienvenido a EcoMerk2");
 
