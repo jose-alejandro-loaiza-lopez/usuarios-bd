@@ -1,5 +1,5 @@
 
-**Base URL**: `http://usuarios-bd-production.up.railway.app:8080/api/v1`
+**Base URL**: `https://usuarios-bd-production.up.railway.app/api/v1`
 
 **Formato de autorización**: incluir header `Authorization: Bearer <ACCESS_TOKEN>` para endpoints que requieran autenticación.  
 - `ACCESS_TOKEN` = JWT (expiración por defecto: 1 día).  
