@@ -50,5 +50,11 @@ spring:
     init:
       mode: never
 
+  logging:
+    level:
+      org.hibernate.SQL: DEBUG
+      org.hibernate.type.descriptor.sql.BasicBinder: TRACE # Muestra los parámetros del INSERT
+      co.uceva.usuariosservice: DEBUG
+
   main:
     allow-circular-references: true
