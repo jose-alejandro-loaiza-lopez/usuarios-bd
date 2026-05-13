@@ -25,10 +25,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        String path = request.getRequestURI();
+        // 1. Usar getServletPath() es más preciso en Spring Boot que getRequestURI()
+        String path = request.getServletPath();
+        String method = request.getMethod();
 
-        // 🛡️ Si es login, registro, llave pública o refresh token, saltamos el filtro de una vez
-        if (path.contains("/login") || path.contains("/public-key") || path.contains("/auth/refresh") || (path.endsWith("/usuarios/") && request.getMethod().equals("POST"))) {
+        // 2. Usar startsWith() evita que se salten el filtro rutas que solo "contengan" la palabra
+        boolean isPublicPath = path.startsWith("/api/v1/usuarios/login") ||
+                path.startsWith("/api/v1/usuarios/public-key") ||
+                path.startsWith("/api/v1/auth/refresh") ||
+                path.startsWith("/api/v1/productos") ||
+                (path.equals("/api/v1/usuarios/") && method.equalsIgnoreCase("POST"));
+
+        if (isPublicPath) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -40,15 +48,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (jwtUtils.validateToken(token)) {
                 String email = jwtUtils.getEmailFromToken(token);
-
-                // 1. Extraemos el rol que guardamos en el Token (ej: "ROLE_USER")
                 String role = jwtUtils.getRoleFromToken(token);
 
-                // 2. Convertimos ese String en una "Authority" que Spring entienda
                 List<SimpleGrantedAuthority> authorities =
                         Collections.singletonList(new SimpleGrantedAuthority(role));
 
-                // 3. Creamos el token de autenticación incluyendo las authorities (permisos)
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(email, null, authorities);
 

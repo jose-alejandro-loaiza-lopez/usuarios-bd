@@ -37,21 +37,25 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 1. RUTAS PÚBLICAS: Registro y Login
+                        // 1. RUTAS PÚBLICAS: Registro, Login y Llave
                         .requestMatchers(HttpMethod.POST, "/api/v1/usuarios/", "/api/v1/usuarios/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/usuarios/public-key").permitAll()
 
-                        // 2. RUTA PÚBLICA: Refresh Token (no necesita JWT, valida el refresh token internamente)
+                        // 2. RUTA PÚBLICA: Refresh Token
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh").permitAll()
 
-                        // 3. SOLO ADMIN: Ver la lista completa de todos los usuarios
+                        // 🚀 3. NUEVA RUTA PÚBLICA: Productos (Historial de precios)
+                        // Esto permite GET y POST a /api/v1/productos/** sin token
+                        .requestMatchers("/api/v1/productos/**").permitAll()
+
+                        // 4. SOLO ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/v1/usuarios/").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/usuarios/page/**").hasAuthority("ROLE_ADMIN")
 
-                        // 4. CHAT: Requiere autenticación (cualquier usuario logueado)
+                        // 5. CHAT: Requiere auth
                         .requestMatchers("/api/v1/chat/**").authenticated()
 
-                        // 5. TODO LO DEMÁS: Requiere Token (Buscar por ID, Actualizar, Borrar, Favoritos)
+                        // 6. TODO LO DEMÁS: Requiere Token
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
