@@ -553,62 +553,7 @@ Base: `/productos`
    }
    ```
 
-### Implementación en Flutter
-
-```dart
-import 'package:pointycastle/export.dart';
-import 'dart:convert';
-import 'dart:math';
-import 'package:convert/convert.dart';
-
-// 1. Obtener n y e desde GET /usuarios/public-key
-// 2. Construir clave pública RSA
-RSAPublicKey parsePublicKey(String nHex, String eHex) {
-  final n = BigInt.parse(nHex, radix: 16);
-  final e = BigInt.parse(eHex, radix: 16);
-  return RSAPublicKey(n, e);
-}
-
-// 3. Cifrar el body
-Map<String, String> encryptPayload(String plainJson, RSAPublicKey publicKey) {
-  // Generar clave AES de 256 bits e IV de 16 bytes
-  final aesKey = _generateRandomBytes(32);
-  final iv = _generateRandomBytes(16);
-
-  // Cifrar clave AES con RSA (OAEP)
-  final cipher = OAEPEncoding(RSAEngine())
-    ..init(true, PublicKeyParameter<RSAPublicKey>(publicKey));
-  final encryptedAesKey = cipher.process(aesKey);
-
-  // Cifrar payload con AES-256-CBC
-  final aesCipher = CBCBlockCipher(AESEngine())
-    ..init(true, ParametersWithIV(KeyParameter(aesKey), iv));
-  final paddedData = _pad(utf8.encode(plainJson), 16);
-  final encryptedData = _processBlocks(aesCipher, paddedData);
-
-  return {
-    'encryptedAesKey': base64Encode(encryptedAesKey),
-    'iv': base64Encode(iv),
-    'encryptedData': base64Encode(encryptedData),
-  };
-}
-
-// 4. Descifrar respuesta
-String decryptResponse(
-    Map<String, dynamic> encryptedResponse,
-    List<int> aesKey,
-    List<int> iv,
-) {
-  final encryptedData = base64Decode(encryptedResponse['encryptedData']);
-  final responseIv = base64Decode(encryptedResponse['iv']);
-
-  final aesCipher = CBCBlockCipher(AESEngine())
-    ..init(false, ParametersWithIV(KeyParameter(aesKey), responseIv));
-  final decrypted = _processBlocks(aesCipher, encryptedData);
-  return utf8.decode(_unpad(decrypted));
-}
-```
-
+### Flutter
 > **Librerías recomendadas para Flutter:** [`pointycastle`](https://pub.dev/packages/pointycastle) (RSA + AES) y `convert` + `dart:convert` (Base64/hex).
 
 ### Endpoints exceptuados del cifrado
