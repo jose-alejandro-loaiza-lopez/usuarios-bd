@@ -1,5 +1,6 @@
 package co.uceva.usuariosservice.infrastructure.security;
 
+import co.uceva.usuariosservice.domain.exception.CifradoRequeridoException;
 import co.uceva.usuariosservice.domain.model.EncryptedRequestDTO;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -63,7 +64,7 @@ public class DecryptRequestBodyAdvice extends RequestBodyAdviceAdapter {
                 }
             };
         } catch (Exception e) {
-            throw new RuntimeException("Error descifrando lista/objeto: " + e.getMessage());
+            throw new CifradoRequeridoException("La petición debe ir cifrada. Envía el payload como EncryptedRequestDTO (encryptedAesKey, iv, encryptedData).");
         }
     }
 }

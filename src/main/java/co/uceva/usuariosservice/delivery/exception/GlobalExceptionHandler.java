@@ -80,6 +80,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    @ExceptionHandler(CifradoRequeridoException.class)
+    public ResponseEntity<Map<String, Object>> handleCifradoRequerido(CifradoRequeridoException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put(ERROR, ex.getMessage());
+        response.put(STATUS, HttpStatus.BAD_REQUEST.value());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
     @ExceptionHandler(AccesoDenegadoException.class)
     public ResponseEntity<Map<String, Object>> handleAccesoDenegado(AccesoDenegadoException ex) {
         Map<String, Object> response = new HashMap<>();
