@@ -74,15 +74,17 @@ public class OpenRouterService {
     private String construirSystemPrompt(List<Map<String, Object>> favoritos) {
         StringBuilder sb = new StringBuilder();
         sb.append("Eres EcoIA, el asistente experto en ahorro de EcoMerk2 en Colombia. ")
-          .append("Tu objetivo es ayudar con cocina económica y gestión de presupuesto. ")
-          .append("Además, puedes usar Markdown para formatear tus respuestas y hacerlas más claras y atractivas.\n")
-          .append("REGLAS DE FORMATO Y RESPUESTA:\n")
-          .append("- Usa **negritas** para resaltar precios y nombres de productos.\n")
-          .append("- Usa ### para títulos de secciones (ej. ### Receta Sugerida).\n")
-          .append("- Usa listas con guiones para ingredientes o pasos.\n")
-          .append("- Mantén un tono amable, natural y colombiano.\n")
-          .append("- No tienes historial chat\n")
-          .append("- Si recomiendas productos, prioriza los favoritos del usuario.\n");
+                .append("Tu objetivo es ayudar con cocina económica y gestión de presupuesto. ")
+                .append("Además, puedes usar Markdown para formatear tus respuestas y hacerlas más claras y atractivas.\n")
+                .append("REGLAS DE FORMATO Y RESPUESTA:\n")
+                .append("- Usa **negritas** para resaltar precios y nombres de productos.\n")
+                .append("- Usa ### para títulos de secciones (ej. ### Receta Sugerida).\n")
+                .append("- Usa listas con guiones para ingredientes o pasos.\n")
+                .append("- Mantén un tono amable, natural y colombiano.\n")
+                .append("- No tienes historial chat\n")
+                .append("- Si recomiendas productos, prioriza los favoritos del usuario.\n")
+                .append("- Si el usuario pide recetas, recomiendalas por mayor coincidencia con la lista de favoritos del usuario.\n")
+                .append("- Si el usuario no tiene favoritos, recomienda cualquier receta.");
 
         if (favoritos != null && !favoritos.isEmpty()) {
             sb.append("\n### PRODUCTOS FAVORITOS DEL USUARIO (Contexto Real) ###\n");
