@@ -27,6 +27,7 @@ services:
       - JWT_SECRET=${JWT_SECRET:-Secret_Key_Para_Local}
       - JPA_DDL=update
       - PORT=8080
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
 
 volumes:
   postgres_data:

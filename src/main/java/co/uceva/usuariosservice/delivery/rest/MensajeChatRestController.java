@@ -2,11 +2,13 @@ package co.uceva.usuariosservice.delivery.rest;
 
 import co.uceva.usuariosservice.domain.exception.ValidationException;
 import co.uceva.usuariosservice.domain.exception.AccesoDenegadoException;
+import co.uceva.usuariosservice.domain.model.ChatIaRequest;
 import co.uceva.usuariosservice.domain.model.MensajeChat;
 import co.uceva.usuariosservice.domain.model.MensajeChatRequest;
 import co.uceva.usuariosservice.domain.model.Usuarios;
 import co.uceva.usuariosservice.domain.service.IMensajeChatService;
 import co.uceva.usuariosservice.domain.service.IUsuariosService;
+import co.uceva.usuariosservice.infrastructure.ai.OpenRouterService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -34,6 +36,7 @@ public class MensajeChatRestController {
 
     private final IMensajeChatService mensajeChatService;
     private final IUsuariosService usuariosService;
+    private final OpenRouterService openRouterService;
 
     private static final String MENSAJE = "mensaje";
     private static final String MENSAJES = "mensajes";
@@ -101,5 +104,51 @@ public class MensajeChatRestController {
         response.put("datos", nuevoMensaje);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Envía un mensaje a la IA (OpenRouter) y guarda tanto el mensaje del
+     * usuario como la respuesta de la IA en el historial.
+     *
+     * La API key de OpenRouter se encuentra en el servidor (variable de entorno).
+     * Los favoritos se reciben desde Flutter porque incluyen datos (nombre, tienda,
+     * precio) que no están disponibles en esta base de datos.
+     *
+     * PROTECCIÓN: Requiere autenticación (JWT válido)
+     */
+    @PostMapping("/ia")
+    public ResponseEntity<Map<String, Object>> preguntarIa(
+            @Valid @RequestBody ChatIaRequest request,
+            BindingResult result,
+            Authentication auth) {
+
+        if (result.hasErrors()) {
+            throw new ValidationException(result);
+        }
+
+        Usuarios usuario = usuariosService.findByEmail(auth.getName())
+                .orElseThrow(() -> new AccesoDenegadoException("Usuario no encontrado"));
+
+        Long usuarioId = usuario.getId();
+
+        // 1. Guardar mensaje del usuario
+        mensajeChatService.guardarMensaje(usuarioId, request.getMensaje(), false);
+
+        // 2. Consultar a la IA con los favoritos del usuario
+        String respuesta = openRouterService.preguntar(request.getMensaje(), request.getFavoritos());
+
+        if (respuesta == null) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put(MENSAJE, "Error al obtener respuesta de la IA");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+
+        // 3. Guardar respuesta de la IA
+        mensajeChatService.guardarMensaje(usuarioId, respuesta, true);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("respuesta", respuesta);
+
+        return ResponseEntity.ok(response);
     }
 }

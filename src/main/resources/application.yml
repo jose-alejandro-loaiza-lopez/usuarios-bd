@@ -13,6 +13,10 @@ jwt:
   refresh-expiration: 604800000 # 7 días
   refresh-secret: ${JWT_REFRESH_SECRET:default_refresh_secret}
 
+openrouter:
+  api-key: ${OPENROUTER_API_KEY:}
+  model: openai/gpt-oss-120b:free
+
 spring:
   application:
     name: usuarios-service

@@ -44,4 +44,14 @@ public class MensajeChatServiceImpl implements IMensajeChatService {
         mensaje.setEsIa(request.getEsIa());
         return mensajeChatRepository.save(mensaje);
     }
+
+    @Override
+    @Transactional
+    public MensajeChat guardarMensaje(Long usuarioId, String contenido, Boolean esIa) {
+        MensajeChat mensaje = new MensajeChat();
+        mensaje.setUsuarioId(usuarioId);
+        mensaje.setContenido(contenido);
+        mensaje.setEsIa(esIa);
+        return mensajeChatRepository.save(mensaje);
+    }
 }

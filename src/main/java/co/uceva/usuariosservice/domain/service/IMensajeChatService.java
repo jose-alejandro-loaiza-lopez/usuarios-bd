@@ -27,4 +27,9 @@ public interface IMensajeChatService {
      * Guarda un nuevo mensaje de chat asociado al usuario.
      */
     MensajeChat guardarMensaje(Long usuarioId, MensajeChatRequest request);
+
+    /**
+     * Guarda un nuevo mensaje de chat directamente con los valores.
+     */
+    MensajeChat guardarMensaje(Long usuarioId, String contenido, Boolean esIa);
 }
