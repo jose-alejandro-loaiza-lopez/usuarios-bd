@@ -4,7 +4,6 @@ import co.uceva.usuariosservice.domain.exception.ValidationException;
 import co.uceva.usuariosservice.domain.exception.AccesoDenegadoException;
 import co.uceva.usuariosservice.domain.model.ChatIaRequest;
 import co.uceva.usuariosservice.domain.model.MensajeChat;
-import co.uceva.usuariosservice.domain.model.MensajeChatRequest;
 import co.uceva.usuariosservice.domain.model.Usuarios;
 import co.uceva.usuariosservice.domain.service.IMensajeChatService;
 import co.uceva.usuariosservice.domain.service.IUsuariosService;
@@ -22,12 +21,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Controlador REST para el historial de mensajes de chat de EcoMerk2.
+ * Controlador REST para el chat con IA de EcoMerk2.
  *
  * Endpoints:
- *   GET  /api/v1/chat/mensajes          → Últimos 10 mensajes (primera carga)
- *   GET  /api/v1/chat/mensajes?antes=ID → Siguientes 10 mensajes anteriores al cursor
- *   POST /api/v1/chat/mensajes          → Guardar un nuevo mensaje
+ *   GET  /api/v1/chat/mensajes            → Últimos 10 mensajes (primera carga)
+ *   GET  /api/v1/chat/mensajes?antes=ID   → Siguientes 10 mensajes anteriores al cursor
+ *   POST /api/v1/chat/ia                  → Enviar mensaje a la IA y guardar historial
  */
 @RestController
 @RequestMapping("/api/v1/chat")
@@ -75,35 +74,6 @@ public class MensajeChatRestController {
         response.put("hayMas", mensajes.size() == CANTIDAD_POR_PAGINA);
 
         return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Guarda un nuevo mensaje en el historial de chat.
-     * 
-     * PROTECCIÓN: Requiere autenticación (JWT válido)
-     */
-    @PostMapping("/mensajes")
-    public ResponseEntity<Map<String, Object>> guardarMensaje(
-            @Valid @RequestBody MensajeChatRequest request,
-            BindingResult result,
-            Authentication auth) {
-
-        if (result.hasErrors()) {
-            throw new ValidationException(result);
-        }
-
-        Usuarios usuario = usuariosService.findByEmail(auth.getName())
-                .orElseThrow(() -> new AccesoDenegadoException("Usuario no encontrado"));
-
-        Long usuarioId = usuario.getId();
-
-        MensajeChat nuevoMensaje = mensajeChatService.guardarMensaje(usuarioId, request);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put(MENSAJE, "Mensaje guardado con éxito");
-        response.put("datos", nuevoMensaje);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
