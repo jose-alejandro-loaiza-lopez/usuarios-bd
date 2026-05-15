@@ -1,127 +1,165 @@
-# 🛒 EcoMerca2 - Usuarios Service API
+# EcoMerk2 — Usuarios Service
 
-Documentación de los endpoints del microservicio de usuarios desplegado en **Railway**.
+Microservicio de usuarios para **EcoMerk2**, una plataforma móvil de comparación de precios y asistente de recetas con IA.
 
-## 🚀 Información del Servidor
-- **URL Base:** `https://usuarios-bd-production.up.railway.app/api/v1/usuarios`
-- **Autenticación:** Bearer Token (JWT)
+## Stack
+
+| Capa | Tecnología |
+|---|---|
+| Lenguaje | Java 21 |
+| Framework | Spring Boot 3.2.5 |
+| Seguridad | Spring Security + JWT (jjwt) |
+| Base de datos | PostgreSQL |
+| Persistencia | Spring Data JPA / Hibernate |
+| Validación | Jakarta Validation |
+| Cifrado E2E | RSA 2048 + AES-128 CBC |
+| Build | Maven |
+| IA | OpenRouter (GPT / Gemini) |
+| Despliegue | Railway + Docker |
+
+## Arquitectura
+
+```
+src/main/java/co/uceva/usuariosservice/
+├── delivery/rest/       # Controladores REST
+├── delivery/exception/  # Manejador global de excepciones
+├── domain/model/        # Entidades JPA y DTOs
+├── domain/repository/   # Repositorios JPA
+├── domain/service/      # Lógica de negocio
+├── domain/exception/    # Excepciones de dominio
+└── infrastructure/      # Seguridad, config, utilidades
+    ├── security/        # JWT, RSA, AES, cifrado
+    └── config/          # Beans de configuración
+```
+
+## Funcionalidades
+
+- **Gestión de usuarios** — registro, login, CRUD con roles (USER/ADMIN)
+- **Favoritos** — sincronización de productos favoritos por usuario
+- **Chat con IA** — chat contextual con EcoIA vía OpenRouter
+- **Historial de precios** — registro y consulta de precios de productos
+- **Cifrado E2E obligatorio** — toda petición con body y toda respuesta viaja cifrada con RSA 2048 + AES-128 CBC
+- **Refresh tokens** — rotación de tokens con almacenamiento hasheado (SHA-256)
+
+## Documentación de la API
+
+→ **[docs.md](docs.md)** — Documentación completa de endpoints, ejemplos de entrada/salida con cifrado, códigos de error y guía de implementación para el frontend Flutter.
 
 ---
 
-## 👥 Gestión de Usuarios
+## Ejecutar con Docker
 
-### 1. Registrar Nuevo Usuario
-Crea una cuenta nueva. Por defecto se asigna el rol `ROLE_USER`.
-```bash
-curl -X POST https://usuarios-bd-production.up.railway.app/api/v1/usuarios/ \
--H "Content-Type: application/json" \
--d '{
-  "nombre": "Jose Alejandro",
-  "email": "jose@ecomerca.com",
-  "password": "password123",
-  "fechaNacimiento": "2000-10-25"
-}'
+### Prerrequisitos
+
+- Docker
+- Archivo `.env` con las variables de entorno (ver sección [Configuración](#configuración))
+
+### docker-compose (producción local)
+
+El archivo [`compose.yaml`](compose.yaml) levanta PostgreSQL y el microservicio:
+
+```yaml
+services:
+  postgres:
+    image: 'postgres:latest'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-usuarios}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER:-devdb}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - '5432'
+
+  usuarios-service:
+    image: joseloaiza01/usuarios-bd-1.0:latest
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET:-Secret_Key_Para_Local}
+      - JPA_DDL=update
+      - PORT=8080
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+
+volumes:
+  postgres_data:
 ```
 
-### 2. Inicio de Sesión (Login)
-Obtiene el **ID** del usuario y el **Token JWT** para peticiones protegidas.
-```bash
-curl -X POST https://usuarios-bd-production.up.railway.app/api/v1/usuarios/login \
--H "Content-Type: application/json" \
--d '{
-  "email": "jose@ecomerca.com",
-  "password": "password123"
-}'
+### Construir la imagen manualmente
+
+El `Dockerfile` usa `amazoncorretto:21-alpine` y el JAR preconstruido:
+
+```dockerfile
+FROM amazoncorretto:21-alpine
+WORKDIR /app
+COPY target/usuarios-bd-1.0.jar /app
+ENTRYPOINT ["java", "-jar", "usuarios-bd-1.0.jar"]
 ```
 
-### 3. Obtener Perfil de Usuario
-Requiere token. Solo accesible por el dueño de la cuenta o un administrador.
+> **Nota:** el `Dockerfile` está en `.gitignore` porque la imagen se publica directo a Docker Hub. Para construir localmente:
+>
+> ```bash
+> ./mvnw clean package -DskipTests
+> docker build -t usuarios-bd .
+> ```
+
+### Ejecutar con Compose
+
 ```bash
-curl -X GET https://usuarios-bd-production.up.railway.app/api/v1/usuarios/6 \
--H "Authorization: Bearer <TU_TOKEN>"
+# 1. Crear archivo .env (ver sección de variables)
+cat > .env << EOF
+SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/usuarios
+SPRING_DATASOURCE_USERNAME=devdb
+SPRING_DATASOURCE_PASSWORD=tu_password
+OPENROUTER_API_KEY=sk-...
+EOF
+
+# 2. Levantar todo
+docker compose up -d
 ```
 
-### 4. Actualizar Perfil
-Actualiza los datos básicos. El campo `role` y `alimentosFavoritos` se omiten por seguridad en este endpoint.
-```bash
-curl -X PUT https://usuarios-bd-production.up.railway.app/api/v1/usuarios/6 \
--H "Authorization: Bearer <TU_TOKEN>" \
--H "Content-Type: application/json" \
--d '{
-  "nombre": "Jose Alejandro Actualizado",
-  "email": "jose.actualizado@ecomerca.com",
-  "password": "nuevapassword123",
-  "fechaNacimiento": "2000-10-25"
-}'
-```
-
-### 5. Eliminar Cuenta
-Borra al usuario y sus registros asociados en la tabla de favoritos (borrado en cascada).
-```bash
-curl -X DELETE https://usuarios-bd-production.up.railway.app/api/v1/usuarios/6 \
--H "Authorization: Bearer <TU_TOKEN>"
-```
+La API queda disponible en `http://localhost:8080/api/v1`.
 
 ---
 
-## 🍎 Gestión de Favoritos
+## Configuración
 
-### 6. Sincronizar Alimentos Favoritos
-Endpoint tipo `PATCH` para actualizar la lista de productos preferidos del usuario.
+Variables de entorno disponibles:
+
+| Variable | Descripción | Default |
+|---|---|---|
+| `PORT` | Puerto del servidor | `8080` |
+| `JWT_SECRET` | Secreto para firmar JWT | `Secret_Key_Para_Local` |
+| `JWT_REFRESH_SECRET` | Secreto para hash de refresh tokens | `default_refresh_secret` |
+| `jwt.expiration` | Duración del access token (ms) | `900000` (15 min) |
+| `jwt.refresh-expiration` | Duración del refresh token (ms) | `86400000` (1 día) |
+| `SPRING_DATASOURCE_URL` | URL JDBC de PostgreSQL | — |
+| `SPRING_DATASOURCE_USERNAME` | Usuario BD | — |
+| `SPRING_DATASOURCE_PASSWORD` | Contraseña BD | — |
+| `OPENROUTER_API_KEY` | API key de OpenRouter | — |
+| `OPENROUTER_MODEL` | Modelo de IA | `openai/gpt-oss-120b:free` |
+| `JPA_DDL` | Estrategia DDL de Hibernate | `update` |
+
+## Ejecutar localmente (sin Docker)
+
 ```bash
-curl -X PATCH https://usuarios-bd-production.up.railway.app/api/v1/usuarios/<ID_USUARIO>/favoritos -H "Authorization: Bearer <TOKEN_USUARIO>" -H "Content-Type: application/json" -d '[
-{
-"nombre": "Aceite de Girasol 1L",
-"precio": "$12.500",
-"tienda": "Exito",
-"imagen": "https://url-de-la-imagen.jpg",
-"link": "https://exito.com/producto/aceite"
-},
-{
-"nombre": "Arroz Integral 500g",
-"precio": "$3.200",
-"tienda": "Olimpica",
-"imagen": "https://url-de-la-imagen2.jpg",
-"link": "https://olimpica.com/producto/arroz"
-}
-]'
+# Requiere Java 21+ y PostgreSQL corriendo en localhost:5432
+export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/usuarios
+export SPRING_DATASOURCE_USERNAME=devdb
+export SPRING_DATASOURCE_PASSWORD=pass
+
+./mvnw spring-boot:run
 ```
 
----
+## Licencia
 
-## Comandos de Admin
-
-Listar todos los Usuarios:
-```bash
-curl -X GET https://usuarios-bd-production.up.railway.app/api/v1/usuarios/ \
--H "Authorization: Bearer <TOKEN_DE_ADMIN>"
-```
-
-Listar Usuarios por páginas:
-```bash
-curl -X GET https://usuarios-bd-production.up.railway.app/api/v1/usuarios/page/0 \
--H "Authorization: Bearer <TOKEN_DE_ADMIN>"
-```
-
----
-
-## 🛡️ Códigos de Respuesta Comunes
-
-| Código | Significado | Motivo |
-| :--- | :--- | :--- |
-| **200 OK** | Éxito | La operación se realizó correctamente. |
-| **201 Created** | Creado | El usuario fue registrado con éxito. |
-| **400 Bad Request** | Error de Validación | Faltan campos obligatorios o el formato es incorrecto. |
-| **401 Unauthorized** | No autorizado | El token ha expirado o no se envió el header Authorization. |
-| **403 Forbidden** | Acceso Denegado | Intentaste modificar o eliminar un usuario que no es el tuyo sin ser ADMIN. |
-| **404 Not Found** | No encontrado | El ID del usuario no existe en la base de datos. |
-| **500 Internal Error** | Error de Servidor | Error de credenciales inválidas o falla en la DB. |
-
----
-
-### 💡 Notas de Implementación
-- Las contraseñas se almacenan encriptadas con **BCrypt**.
-- Se utiliza **Habeas Data** para asegurar que los correos electrónicos sean únicos en el sistema.
-- La arquitectura sigue el patrón **DTO** para evitar la exposición de campos sensibles como el rol durante las actualizaciones.
-
----
+Proyecto académico — UCEVA
