@@ -4,6 +4,8 @@ import co.uceva.usuariosservice.domain.exception.AccesoDenegadoException;
 import co.uceva.usuariosservice.domain.exception.UsuarioExistenteException;
 import co.uceva.usuariosservice.domain.exception.UsuarioNoEncontradoException;
 import co.uceva.usuariosservice.domain.model.*;
+import co.uceva.usuariosservice.domain.repository.IMensajeChatRepository;
+import co.uceva.usuariosservice.domain.repository.IRefreshTokenRepository;
 import co.uceva.usuariosservice.domain.repository.IUsuariosRepository;
 import co.uceva.usuariosservice.infrastructure.security.JwtUtils;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,8 @@ public class UsuariosServiceImpl implements IUsuariosService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final IRefreshTokenService refreshTokenService;
+    private final IRefreshTokenRepository refreshTokenRepository;
+    private final IMensajeChatRepository mensajeChatRepository;
 
     @Override
     @Transactional
@@ -61,6 +65,8 @@ public class UsuariosServiceImpl implements IUsuariosService {
         boolean esAdmin = operando.getRole().equals("ROLE_ADMIN");
 
         if (esDueno || esAdmin) {
+            refreshTokenRepository.eliminarPorUsuarioId(id);
+            mensajeChatRepository.eliminarPorUsuarioId(id);
             usuariosRepository.delete(objetivo);
         } else {
             throw new AccesoDenegadoException("No tienes rango suficiente para borrar a otro usuario.");
