@@ -63,18 +63,18 @@ public class OpenRouterService {
 
                         List<Map<String, Object>> resultados = busquedaTiendaService.buscarEnTiendas(query);
 
-                        messages.add(Map.of(
-                                "role", "assistant",
-                                "content", null,
-                                "tool_calls", List.of(Map.of(
-                                        "id", toolCallId,
-                                        "type", "function",
-                                        "function", Map.of(
-                                                "name", functionName,
-                                                "arguments", arguments
-                                        )
-                                ))
-                        ));
+                        Map<String, Object> assistantMsg = new HashMap<>();
+                        assistantMsg.put("role", "assistant");
+                        assistantMsg.put("content", null);
+                        Map<String, Object> tcMap = new HashMap<>();
+                        tcMap.put("id", toolCallId);
+                        tcMap.put("type", "function");
+                        Map<String, String> fn = new HashMap<>();
+                        fn.put("name", functionName);
+                        fn.put("arguments", arguments);
+                        tcMap.put("function", fn);
+                        assistantMsg.put("tool_calls", List.of(tcMap));
+                        messages.add(assistantMsg);
 
                         List<Map<String, Object>> resultadosSimples = new ArrayList<>();
                         for (Map<String, Object> r : resultados) {
@@ -86,16 +86,29 @@ public class OpenRouterService {
                             resultadosSimples.add(simple);
                         }
 
-                        messages.add(Map.of(
-                                "role", "tool",
-                                "tool_call_id", toolCallId,
-                                "content", objectMapper.writeValueAsString(resultadosSimples)
-                        ));
+                        Map<String, Object> toolMsg = new HashMap<>();
+                        toolMsg.put("role", "tool");
+                        toolMsg.put("tool_call_id", toolCallId);
+                        toolMsg.put("content", objectMapper.writeValueAsString(resultadosSimples));
+                        messages.add(toolMsg);
                     }
                 }
 
-                JsonNode segundaRespuesta = llamarOpenRouter(messages, tools);
-                return segundaRespuesta.get("choices").get(0).get("message").get("content").asText();
+                try {
+                    JsonNode segundaRespuesta = llamarOpenRouter(messages, tools);
+                    JsonNode content = segundaRespuesta.get("choices").get(0).get("message").get("content");
+                    if (content != null && !content.isNull()) {
+                        return content.asText();
+                    }
+                } catch (Exception e2) {
+                    log.warn("Error en segunda llamada con tool results, usando respuesta original si existe", e2);
+                }
+
+                JsonNode content = primerMensaje.get("content");
+                if (content != null && !content.isNull()) {
+                    return content.asText();
+                }
+                return "Lo siento, no pude procesar tu solicitud en este momento.";
             }
 
             return primerMensaje.get("content").asText();
@@ -109,6 +122,7 @@ public class OpenRouterService {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", model);
         requestBody.put("messages", messages);
+        requestBody.put("reasoning", Map.of("enabled", true));
         if (tools != null && !tools.isEmpty()) {
             requestBody.put("tools", tools);
         }
