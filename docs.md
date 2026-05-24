@@ -173,7 +173,7 @@ Base: `/usuarios`
         "email": "carlos@example.com",
         "fechaNacimiento": "1990-01-01",
         "favoritos": [
-          { "productId": "prod_abc", "notificaciones": true }
+          { "productId": "prod_abc", "notificaciones": true, "hasProtein": false }
         ],
         "role": "ROLE_USER"
       }
@@ -336,11 +336,13 @@ Reemplaza **toda** la lista de favoritos del usuario con la lista enviada.
   [
     {
       "productId": "prod_abc_123",
-      "notificaciones": true
+      "notificaciones": true,
+      "hasProtein": true
     },
     {
       "productId": "prod_def_456",
-      "notificaciones": false
+      "notificaciones": false,
+      "hasProtein": false
     }
   ]
   ```
@@ -348,6 +350,7 @@ Reemplaza **toda** la lista de favoritos del usuario con la lista enviada.
   |---|---|---|
   | `productId` | string | Identificador del producto |
   | `notificaciones` | boolean | Activar notificaciones para este producto |
+  | `hasProtein` | boolean | Indica si el producto contiene proteína |
 - **Response 200:**
   ```json
   {
@@ -357,8 +360,8 @@ Reemplaza **toda** la lista de favoritos del usuario con la lista enviada.
       "email": "carlos@example.com",
       "fechaNacimiento": "1990-01-01",
       "favoritos": [
-        { "productId": "prod_abc_123", "notificaciones": true },
-        { "productId": "prod_def_456", "notificaciones": false }
+        { "productId": "prod_abc_123", "notificaciones": true, "hasProtein": true },
+        { "productId": "prod_def_456", "notificaciones": false, "hasProtein": false }
       ],
       "role": "ROLE_USER"
     },
@@ -428,12 +431,14 @@ Base: `/chat`
       {
         "nombre": "Arroz Diana",
         "tienda": "Éxito",
-        "precio": "2500"
+        "precio": "2500",
+        "hasProtein": false
       },
       {
         "nombre": "Huevos Santa Reyes",
         "tienda": "Carulla",
-        "precio": 12000
+        "precio": 12000,
+        "hasProtein": true
       }
     ]
   }
@@ -441,7 +446,7 @@ Base: `/chat`
   | Campo | Tipo | Obligatorio | Descripción |
   |---|---|---|---|
   | `mensaje` | string | sí | Texto del usuario |
-  | `favoritos` | array | No | Contexto de productos favoritos. Cada item: `{ nombre, tienda, precio }` |
+  | `favoritos` | array | No | Contexto de productos favoritos. Cada item: `{ nombre, tienda, precio, hasProtein }` |
 - **Flujo interno:**
   1. Guarda el mensaje del usuario en BD (`esIa = false`)
   2. Construye system prompt con favoritos

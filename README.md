@@ -35,7 +35,7 @@ src/main/java/co/uceva/usuariosservice/
 ## Funcionalidades
 
 - **Gestión de usuarios** — registro, login, CRUD con roles (USER/ADMIN)
-- **Favoritos** — sincronización de productos favoritos por usuario
+- **Favoritos** — sincronización de productos favoritos por usuario, incluyendo indicador de proteína (`hasProtein`)
 - **Chat con IA** — chat contextual con EcoIA vía OpenRouter
 - **Historial de precios** — registro y consulta de precios de productos
 - **Cifrado E2E obligatorio** — toda petición con body y toda respuesta viaja cifrada con RSA 2048 + AES-128 CBC
