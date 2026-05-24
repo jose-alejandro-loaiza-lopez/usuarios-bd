@@ -44,40 +44,52 @@ public class OpenRouterService {
             String systemPrompt = construirSystemPrompt(favoritos);
 
             // ---- FASE 2: Viene con resultados de búsqueda ----
-            if (toolCallId != null && resultadosBusqueda != null && !resultadosBusqueda.isEmpty()) {
-                return procesarResultadosBusqueda(mensaje, favoritos, resultadosBusqueda, toolCallId, toolArguments, systemPrompt);
+            if (toolCallId != null && !toolCallId.isBlank()
+                    && resultadosBusqueda != null && !resultadosBusqueda.isEmpty()) {
+                return procesarResultadosBusqueda(mensaje, resultadosBusqueda, toolCallId, toolArguments, systemPrompt);
             }
 
             // ---- FASE 1: Envio inicial con tools ----
             List<Map<String, Object>> tools = construirToolBuscarEnTiendas();
-
             List<Map<String, Object>> messages = new ArrayList<>();
             messages.add(Map.of("role", "system", "content", systemPrompt));
             messages.add(Map.of("role", "user", "content", mensaje));
 
-            JsonNode response = llamarOpenRouter(messages, tools);
+            JsonNode data = llamarOpenRouter(messages, tools);
+            JsonNode choice = extraerPrimerChoice(data);
 
-            JsonNode message = response.get("choices").get(0).get("message");
-            JsonNode content = message.get("content");
+            if (choice == null) {
+                log.error("OpenRouter: sin choices en la respuesta");
+                return null;
+            }
+
+            JsonNode message = choice.get("message");
+            if (message == null) {
+                log.error("OpenRouter: mensaje sin field 'message'");
+                return null;
+            }
+
             JsonNode toolCalls = message.get("tool_calls");
 
             if (toolCalls != null && toolCalls.isArray() && !toolCalls.isEmpty()) {
                 JsonNode tc = toolCalls.get(0);
-                String fnName = tc.get("function").get("name").asText();
-                if ("buscarEnTiendas".equals(fnName)) {
-                    String query = objectMapper.readTree(tc.get("function").get("arguments").asText()).get("query").asText();
+                JsonNode function = tc.get("function");
+                if (function != null && "buscarEnTiendas".equals(function.get("name").asText())) {
+                    String arguments = function.get("arguments").asText();
+                    String query = objectMapper.readTree(arguments).get("query").asText();
                     log.info("IA solicitó busqueda: {}", query);
 
                     Map<String, Object> result = new HashMap<>();
                     result.put("action", "search");
                     result.put("query", query);
                     result.put("toolCallId", tc.get("id").asText());
-                    result.put("arguments", tc.get("function").get("arguments").asText());
+                    result.put("arguments", arguments);
                     return result;
                 }
             }
 
-            String texto = content != null ? content.asText() : "";
+            String texto = message.has("content") && !message.get("content").isNull()
+                    ? message.get("content").asText() : "";
             return Map.of("respuesta", texto);
         } catch (Exception e) {
             log.error("Error al comunicarse con OpenRouter", e);
@@ -86,16 +98,15 @@ public class OpenRouterService {
     }
 
     private Map<String, Object> procesarResultadosBusqueda(
-            String mensaje, List<Map<String, Object>> favoritos,
-            List<Map<String, Object>> resultadosBusqueda,
+            String mensaje, List<Map<String, Object>> resultadosBusqueda,
             String toolCallId, String toolArguments,
             String systemPrompt) throws Exception {
 
         String toolResultsJson = objectMapper.writeValueAsString(resultadosBusqueda);
 
         List<Map<String, Object>> messages = new ArrayList<>();
-        messages.add(Map.of("role", "system", "content", systemPrompt));
-        messages.add(Map.of("role", "user", "content", mensaje));
+        messages.add(nuevoMap("role", "system", "content", systemPrompt));
+        messages.add(nuevoMap("role", "user", "content", mensaje));
 
         Map<String, Object> assistantMsg = new HashMap<>();
         assistantMsg.put("role", "assistant");
@@ -116,19 +127,41 @@ public class OpenRouterService {
         toolMsg.put("content", toolResultsJson);
         messages.add(toolMsg);
 
-        JsonNode response = llamarOpenRouter(messages, null);
+        JsonNode data = llamarOpenRouter(messages, null);
+        JsonNode choice = extraerPrimerChoice(data);
 
-        JsonNode content = response.get("choices").get(0).get("message").get("content");
-        String texto = content != null && !content.isNull() ? content.asText() : "";
-        return Map.of("respuesta", texto);
+        if (choice == null) {
+            log.error("OpenRouter: sin choices al procesar resultados");
+            return null;
+        }
+
+        JsonNode message = choice.get("message");
+        String texto = (message != null && message.has("content") && !message.get("content").isNull())
+                ? message.get("content").asText() : "";
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("respuesta", texto);
+        return result;
+    }
+
+    private JsonNode extraerPrimerChoice(JsonNode data) {
+        if (data == null) return null;
+        JsonNode choices = data.get("choices");
+        if (choices == null || !choices.isArray() || choices.isEmpty()) {
+            if (data.has("error")) {
+                log.error("OpenRouter error en body: {}", data.get("error"));
+            }
+            return null;
+        }
+        return choices.get(0);
     }
 
     private JsonNode llamarOpenRouter(List<Map<String, Object>> messages, List<Map<String, Object>> tools) throws Exception {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", model);
         requestBody.put("messages", messages);
-        requestBody.put("reasoning", Map.of("enabled", true));
-        if (tools != null && !tools.isEmpty()) {
+        boolean tieneTools = tools != null && !tools.isEmpty();
+        if (tieneTools) {
             requestBody.put("tools", tools);
         }
 
@@ -144,7 +177,12 @@ public class OpenRouterService {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() == 200) {
-            return objectMapper.readTree(response.body());
+            JsonNode data = objectMapper.readTree(response.body());
+            if (data.has("error")) {
+                log.error("OpenRouter error en body 200: {}", data.get("error"));
+                throw new RuntimeException("OpenRouter: " + data.get("error").get("message").asText());
+            }
+            return data;
         }
 
         log.error("OpenRouter error {}: {}", response.statusCode(), response.body());
@@ -185,7 +223,7 @@ public class OpenRouterService {
                 .append("- Usa ### para títulos de secciones (ej. ### Receta Sugerida).\n")
                 .append("- Usa listas con guiones para ingredientes o pasos.\n")
                 .append("- Mantén un tono amable, natural y colombiano.\n")
-                .append("- No tienes historial chat\n")
+                .append("- No tienes un historial del chat\n")
                 .append("- Si recomiendas productos, prioriza los favoritos del usuario.\n")
                 .append("- Si el usuario pide recetas, recomiendalas por mayor coincidencia con la lista de favoritos del usuario.\n")
                 .append("- Si el usuario no tiene favoritos, recomienda cualquier receta.\n")
@@ -193,11 +231,11 @@ public class OpenRouterService {
                 .append("- Úsala cuando el usuario pida buscar productos específicos, comparar precios entre tiendas, o cuando necesites información actualizada de productos.\n")
                 .append("- Ejemplos: 'busca arroz barato', 'cuánto cuesta el pollo en las tiendas', 'encuentra aceite de cocina'.\n")
                 .append("- La función buscará automáticamente en Éxito, Olímpica y Surtifamiliar y te devolverá los resultados ordenados por precio.\n")
-                .append("- IMPORTANTE: Cuando recibas los resultados, PRESÉNTALOS al usuario de forma amigable, indicando el producto, la tienda y el precio. Usa los datos reales que recibiste.\n")
+                .append("- IMPORTANTE: Cuando recibas los resultados, PRESÉNTALOS al usuario de forma amigable, indicando el producto, la tienda, el precio y el enlace. Usa los datos reales que recibiste.\n")
                 .append("- Si un producto no se encuentra o no hay resultados, indícaselo amablemente al usuario.");
 
         if (favoritos != null && !favoritos.isEmpty()) {
-            sb.append("\n### PRODUCTOS FAVORITOS DEL USUARIO (Contexto Real) ###\n");
+            sb.append("\n### PRODUCTOS FAVORITOS DEL USUARIO ###\n");
             for (Map<String, Object> f : favoritos) {
                 String nombre = f.getOrDefault("nombre", "Producto").toString();
                 String tienda = f.getOrDefault("tienda", "Tienda desconocida").toString();
@@ -211,5 +249,12 @@ public class OpenRouterService {
         }
 
         return sb.toString();
+    }
+
+    private Map<String, Object> nuevoMap(String k1, String v1, String k2, String v2) {
+        Map<String, Object> m = new HashMap<>();
+        m.put(k1, v1);
+        m.put(k2, v2);
+        return m;
     }
 }
