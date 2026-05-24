@@ -15,4 +15,10 @@ public class ChatIaRequest {
     private String mensaje;
 
     private List<Map<String, Object>> favoritos;
+
+    private List<Map<String, Object>> resultadosBusqueda;
+
+    private String toolCallId;
+
+    private String arguments;
 }

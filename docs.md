@@ -420,47 +420,77 @@ Base: `/chat`
 
 ---
 
-### POST /chat/ia — Enviar mensaje a la IA
+### POST /chat/ia — Enviar mensaje a la IA (con tool calling)
 
 - **Autenticación:** SÍ
-- **Request:**
+- **Flujo en dos fases:**
+
+  **FASE 1 — El usuario envía un mensaje:**
   ```json
   {
-    "mensaje": "¿Qué puedo cocinar con huevos y arroz?",
-    "favoritos": [
+    "mensaje": "busca arroz barato",
+    "favoritos": [...]
+  }
+  ```
+  La IA tiene la función `buscarEnTiendas` disponible. Si decide usarla, el backend responde:
+  ```json
+  {
+    "action": "search",
+    "query": "arroz",
+    "toolCallId": "call_abc123",
+    "arguments": "{\"query\": \"arroz\"}"
+  }
+  ```
+  Si la IA no necesita buscar, responde normal:
+  ```json
+  {
+    "respuesta": "Claro, aquí tienes una receta..."
+  }
+  ```
+
+  **FASE 2 — Flutter ejecuta la búsqueda y reenvía:**
+  Flutter recibe `action: "search"`, ejecuta `MarketApiService.buscarEnTiendas(query)` y envía:
+  ```json
+  {
+    "mensaje": "busca arroz barato",
+    "favoritos": [...],
+    "resultadosBusqueda": [
       {
-        "nombre": "Arroz Diana",
+        "nombre": "Arroz Diana 500g",
         "tienda": "Éxito",
-        "precio": "2500",
-        "hasProtein": false
+        "precio": 2500,
+        "link": "https://www.exito.com/arroz-diana/p"
       },
       {
-        "nombre": "Huevos Santa Reyes",
-        "tienda": "Carulla",
-        "precio": 12000,
-        "hasProtein": true
+        "nombre": "Arroz Caribe 1kg",
+        "tienda": "Olímpica",
+        "precio": 3200,
+        "link": "https://www.olimpica.com/arroz-caribe/p"
       }
-    ]
+    ],
+    "toolCallId": "call_abc123",
+    "arguments": "{\"query\": \"arroz\"}"
   }
   ```
-  | Campo | Tipo | Obligatorio | Descripción |
-  |---|---|---|---|
-  | `mensaje` | string | sí | Texto del usuario |
-  | `favoritos` | array | No | Contexto de productos favoritos. Cada item: `{ nombre, tienda, precio, hasProtein }` |
-- **Flujo interno:**
-   1. Guarda el mensaje del usuario en BD (`esIa = false`)
-   2. Construye system prompt con favoritos
-   3. Envía a OpenRouter con la función `buscarEnTiendas` disponible
-   4. Si la IA decide buscar productos (ej. "busca arroz barato"), el backend ejecuta la búsqueda en Éxito, Olímpica y Surtifamiliar, inyecta los resultados en el contexto y la IA genera la respuesta final con los datos reales
-   5. Si la IA no necesita buscar, responde directamente
-   6. Guarda la respuesta de la IA en BD (`esIa = true`)
-   7. Devuelve la respuesta al cliente
-- **Response 200:**
+  El backend reconstruye la conversación con los resultados y la IA responde con datos reales:
   ```json
   {
-    "respuesta": "¡Claro! Con huevos y arroz puedes preparar un delicioso **arroz con huevo** o un **arroz chino**.\n\n**Receta rápida:**\n1. Sofríe ajo y cebolla\n2. Agrega el arroz cocido\n3. Haz un huevo revuelto aparte\n4. Mezcla todo y sazona"
+    "respuesta": "Estos son los resultados para **arroz**:\n\n1. **Arroz Diana 500g** en Éxito: $2.500 COP\n2. **Arroz Caribe 1kg** en Olímpica: $3.200 COP\n\n¿Te gustaría que te recomiende una receta con alguno de estos?"
   }
   ```
+
+- **Campos del request (FASE 2):**
+  | Campo | Tipo | Obligatorio | Descripción |
+  |---|---|---|---|
+  | `mensaje` | string | sí | Texto del usuario (mismo que en FASE 1) |
+  | `favoritos` | array | No | Contexto de productos favoritos |
+  | `resultadosBusqueda` | array | No | Resultados de MarketApiService. Cada item: `{ nombre, tienda, precio, link }` |
+  | `toolCallId` | string | No (sí en FASE 2) | ID del tool_call devuelto en FASE 1 |
+  | `arguments` | string | No (sí en FASE 2) | Argumentos JSON del tool_call devuelto en FASE 1 |
+
+- **Flujo interno:**
+   - FASE 1: Guarda el mensaje del usuario en BD, consulta a OpenRouter con tools, devuelve action o respuesta
+   - FASE 2: NO guarda el mensaje otra vez, reconstruye el tool_call, consulta a OpenRouter sin tools, guarda la respuesta final y la devuelve
 - **Error 500 (OpenRouter falla):**
   ```json
   {

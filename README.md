@@ -36,7 +36,7 @@ src/main/java/co/uceva/usuariosservice/
 
 - **Gestión de usuarios** — registro, login, CRUD con roles (USER/ADMIN)
 - **Favoritos** — sincronización de productos favoritos por usuario, incluyendo indicador de proteína (`hasProtein`)
-- **Chat con IA** — chat contextual con EcoIA vía OpenRouter, con capacidad de buscar productos en tiendas (Éxito, Olímpica, Surtifamiliar) mediante function calling
+- **Chat con IA** — chat contextual con EcoIA vía OpenRouter con tool calling. La IA puede solicitar búsquedas en tiendas; el backend devuelve `{ action: "search", query }`, Flutter ejecuta `MarketApiService` y reenvía los resultados para que la IA genere la respuesta final
 - **Historial de precios** — registro y consulta de precios de productos
 - **Cifrado E2E obligatorio** — toda petición con body y toda respuesta viaja cifrada con RSA 2048 + AES-128 CBC
 - **Refresh tokens** — rotación de tokens con almacenamiento hasheado (SHA-256)

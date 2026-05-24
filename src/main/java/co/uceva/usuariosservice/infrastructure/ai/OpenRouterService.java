@@ -30,92 +30,97 @@ public class OpenRouterService {
     private String model;
 
     private final ObjectMapper objectMapper;
-    private final BusquedaTiendaService busquedaTiendaService;
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
-    public String preguntar(String mensaje, List<Map<String, Object>> favoritos) {
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> preguntar(String mensaje, List<Map<String, Object>> favoritos,
+                                          List<Map<String, Object>> resultadosBusqueda,
+                                          String toolCallId, String toolArguments) {
         if (apiKey == null || apiKey.isBlank()) {
             throw new RuntimeException("OPENROUTER_API_KEY no configurada");
         }
 
         try {
             String systemPrompt = construirSystemPrompt(favoritos);
-            List<Map<String, Object>> tools = construirTools();
+
+            // ---- FASE 2: Viene con resultados de búsqueda ----
+            if (toolCallId != null && resultadosBusqueda != null && !resultadosBusqueda.isEmpty()) {
+                return procesarResultadosBusqueda(mensaje, favoritos, resultadosBusqueda, toolCallId, toolArguments, systemPrompt);
+            }
+
+            // ---- FASE 1: Envio inicial con tools ----
+            List<Map<String, Object>> tools = construirToolBuscarEnTiendas();
 
             List<Map<String, Object>> messages = new ArrayList<>();
             messages.add(Map.of("role", "system", "content", systemPrompt));
             messages.add(Map.of("role", "user", "content", mensaje));
 
-            JsonNode primeraRespuesta = llamarOpenRouter(messages, tools);
+            JsonNode response = llamarOpenRouter(messages, tools);
 
-            JsonNode primerMensaje = primeraRespuesta.get("choices").get(0).get("message");
-            JsonNode toolCalls = primerMensaje.get("tool_calls");
+            JsonNode message = response.get("choices").get(0).get("message");
+            JsonNode content = message.get("content");
+            JsonNode toolCalls = message.get("tool_calls");
 
             if (toolCalls != null && toolCalls.isArray() && !toolCalls.isEmpty()) {
-                for (JsonNode tc : toolCalls) {
-                    String functionName = tc.get("function").get("name").asText();
-                    String arguments = tc.get("function").get("arguments").asText();
-                    String toolCallId = tc.get("id").asText();
+                JsonNode tc = toolCalls.get(0);
+                String fnName = tc.get("function").get("name").asText();
+                if ("buscarEnTiendas".equals(fnName)) {
+                    String query = objectMapper.readTree(tc.get("function").get("arguments").asText()).get("query").asText();
+                    log.info("IA solicitó busqueda: {}", query);
 
-                    if ("buscarEnTiendas".equals(functionName)) {
-                        String query = objectMapper.readTree(arguments).get("query").asText();
-                        log.info("IA solicitó busqueda: {}", query);
-
-                        List<Map<String, Object>> resultados = busquedaTiendaService.buscarEnTiendas(query);
-
-                        Map<String, Object> assistantMsg = new HashMap<>();
-                        assistantMsg.put("role", "assistant");
-                        assistantMsg.put("content", null);
-                        Map<String, Object> tcMap = new HashMap<>();
-                        tcMap.put("id", toolCallId);
-                        tcMap.put("type", "function");
-                        Map<String, String> fn = new HashMap<>();
-                        fn.put("name", functionName);
-                        fn.put("arguments", arguments);
-                        tcMap.put("function", fn);
-                        assistantMsg.put("tool_calls", List.of(tcMap));
-                        messages.add(assistantMsg);
-
-                        List<Map<String, Object>> resultadosSimples = new ArrayList<>();
-                        for (Map<String, Object> r : resultados) {
-                            Map<String, Object> simple = new HashMap<>();
-                            simple.put("nombre", r.get("nombre"));
-                            simple.put("tienda", r.get("tienda"));
-                            simple.put("precio", r.get("precio"));
-                            simple.put("link", r.get("link"));
-                            resultadosSimples.add(simple);
-                        }
-
-                        Map<String, Object> toolMsg = new HashMap<>();
-                        toolMsg.put("role", "tool");
-                        toolMsg.put("tool_call_id", toolCallId);
-                        toolMsg.put("content", objectMapper.writeValueAsString(resultadosSimples));
-                        messages.add(toolMsg);
-                    }
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("action", "search");
+                    result.put("query", query);
+                    result.put("toolCallId", tc.get("id").asText());
+                    result.put("arguments", tc.get("function").get("arguments").asText());
+                    return result;
                 }
-
-                try {
-                    JsonNode segundaRespuesta = llamarOpenRouter(messages, null);
-                    JsonNode content = segundaRespuesta.get("choices").get(0).get("message").get("content");
-                    if (content != null && !content.isNull()) {
-                        return content.asText();
-                    }
-                } catch (Exception e2) {
-                    log.warn("Error en segunda llamada con tool results, usando respuesta original si existe", e2);
-                }
-
-                JsonNode content = primerMensaje.get("content");
-                if (content != null && !content.isNull()) {
-                    return content.asText();
-                }
-                return "Lo siento, no pude procesar tu solicitud en este momento.";
             }
 
-            return primerMensaje.get("content").asText();
+            String texto = content != null ? content.asText() : "";
+            return Map.of("respuesta", texto);
         } catch (Exception e) {
             log.error("Error al comunicarse con OpenRouter", e);
             return null;
         }
+    }
+
+    private Map<String, Object> procesarResultadosBusqueda(
+            String mensaje, List<Map<String, Object>> favoritos,
+            List<Map<String, Object>> resultadosBusqueda,
+            String toolCallId, String toolArguments,
+            String systemPrompt) throws Exception {
+
+        String toolResultsJson = objectMapper.writeValueAsString(resultadosBusqueda);
+
+        List<Map<String, Object>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", systemPrompt));
+        messages.add(Map.of("role", "user", "content", mensaje));
+
+        Map<String, Object> assistantMsg = new HashMap<>();
+        assistantMsg.put("role", "assistant");
+        assistantMsg.put("content", null);
+        Map<String, Object> tc = new HashMap<>();
+        tc.put("id", toolCallId);
+        tc.put("type", "function");
+        Map<String, String> fn = new HashMap<>();
+        fn.put("name", "buscarEnTiendas");
+        fn.put("arguments", toolArguments);
+        tc.put("function", fn);
+        assistantMsg.put("tool_calls", List.of(tc));
+        messages.add(assistantMsg);
+
+        Map<String, Object> toolMsg = new HashMap<>();
+        toolMsg.put("role", "tool");
+        toolMsg.put("tool_call_id", toolCallId);
+        toolMsg.put("content", toolResultsJson);
+        messages.add(toolMsg);
+
+        JsonNode response = llamarOpenRouter(messages, null);
+
+        JsonNode content = response.get("choices").get(0).get("message").get("content");
+        String texto = content != null && !content.isNull() ? content.asText() : "";
+        return Map.of("respuesta", texto);
     }
 
     private JsonNode llamarOpenRouter(List<Map<String, Object>> messages, List<Map<String, Object>> tools) throws Exception {
@@ -146,23 +151,21 @@ public class OpenRouterService {
         throw new RuntimeException("OpenRouter respondió con código " + response.statusCode());
     }
 
-    private List<Map<String, Object>> construirTools() {
+    private List<Map<String, Object>> construirToolBuscarEnTiendas() {
         Map<String, Object> tool = new HashMap<>();
         tool.put("type", "function");
 
         Map<String, Object> function = new HashMap<>();
         function.put("name", "buscarEnTiendas");
-        function.put("description", "Busca productos en tiendas colombianas (Éxito, Olímpica, Surtifamiliar) y devuelve resultados con nombre, precio, tienda y link. Úsala cuando el usuario pida buscar productos, comparar precios, o cuando necesites información actualizada de productos del mercado colombiano para hacer una recomendación.");
+        function.put("description", "Busca productos en tiendas colombianas (Éxito, Olímpica, Surtifamiliar) y devuelve resultados con nombre, precio, tienda y link. Úsala cuando el usuario pida buscar productos, comparar precios, o cuando necesites información actualizada de productos del mercado colombiano.");
 
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("type", "object");
-
         Map<String, Object> properties = new HashMap<>();
         Map<String, Object> queryProp = new HashMap<>();
         queryProp.put("type", "string");
         queryProp.put("description", "Término de búsqueda del producto (ej. 'arroz', 'huevos', 'pollo', 'aceite', 'leche')");
         properties.put("query", queryProp);
-
         parameters.put("properties", properties);
         parameters.put("required", List.of("query"));
 
@@ -190,7 +193,7 @@ public class OpenRouterService {
                 .append("- Úsala cuando el usuario pida buscar productos específicos, comparar precios entre tiendas, o cuando necesites información actualizada de productos.\n")
                 .append("- Ejemplos: 'busca arroz barato', 'cuánto cuesta el pollo en las tiendas', 'encuentra aceite de cocina'.\n")
                 .append("- La función buscará automáticamente en Éxito, Olímpica y Surtifamiliar y te devolverá los resultados ordenados por precio.\n")
-                .append("- IMPORTANTE: Cuando recibas los resultados de la búsqueda, PRESÉNTALOS al usuario de forma amigable, indicando el producto, la tienda y el precio. Usa los datos reales que recibiste.\n")
+                .append("- IMPORTANTE: Cuando recibas los resultados, PRESÉNTALOS al usuario de forma amigable, indicando el producto, la tienda y el precio. Usa los datos reales que recibiste.\n")
                 .append("- Si un producto no se encuentra o no hay resultados, indícaselo amablemente al usuario.");
 
         if (favoritos != null && !favoritos.isEmpty()) {

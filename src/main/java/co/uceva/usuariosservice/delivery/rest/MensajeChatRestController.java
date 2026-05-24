@@ -81,8 +81,13 @@ public class MensajeChatRestController {
      * usuario como la respuesta de la IA en el historial.
      *
      * La API key de OpenRouter se encuentra en el servidor (variable de entorno).
-     * Los favoritos se reciben desde Flutter porque incluyen datos (nombre, tienda,
-     * precio) que no están disponibles en esta base de datos.
+     *
+     * Flujo en dos fases:
+     *   FASE 1: El usuario envía un mensaje. Si la IA decide buscar productos,
+     *           responde con { action: "search", query, toolCallId, arguments }.
+     *   FASE 2: Flutter ejecuta MarketApiService y reenvía el mensaje con
+     *           resultadosBusqueda + toolCallId + arguments. La IA genera la
+     *           respuesta final con los datos reales.
      *
      * PROTECCIÓN: Requiere autenticación (JWT válido)
      */
@@ -101,19 +106,33 @@ public class MensajeChatRestController {
 
         Long usuarioId = usuario.getId();
 
-        // 1. Guardar mensaje del usuario
-        mensajeChatService.guardarMensaje(usuarioId, request.getMensaje(), false);
+        // FASE 2: Viene con resultados de búsqueda → no guardar mensaje otra vez
+        if (request.getToolCallId() == null || request.getToolCallId().isBlank()) {
+            mensajeChatService.guardarMensaje(usuarioId, request.getMensaje(), false);
+        }
 
-        // 2. Consultar a la IA con los favoritos del usuario
-        String respuesta = openRouterService.preguntar(request.getMensaje(), request.getFavoritos());
+        // Consultar a la IA
+        Map<String, Object> resultado = openRouterService.preguntar(
+                request.getMensaje(),
+                request.getFavoritos(),
+                request.getResultadosBusqueda(),
+                request.getToolCallId(),
+                request.getArguments()
+        );
 
-        if (respuesta == null) {
+        if (resultado == null) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put(MENSAJE, "Error al obtener respuesta de la IA");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
 
-        // 3. Guardar respuesta de la IA
+        // Si la IA quiere buscar (FASE 1), devolver action sin guardar respuesta
+        if (resultado.containsKey("action")) {
+            return ResponseEntity.ok(resultado);
+        }
+
+        // Tiene respuesta textual → guardar y devolver
+        String respuesta = (String) resultado.get("respuesta");
         mensajeChatService.guardarMensaje(usuarioId, respuesta, true);
 
         Map<String, Object> response = new HashMap<>();
