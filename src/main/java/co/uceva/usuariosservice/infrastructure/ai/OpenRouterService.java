@@ -95,7 +95,7 @@ public class OpenRouterService {
                 }
 
                 try {
-                    JsonNode segundaRespuesta = llamarOpenRouter(messages, tools);
+                    JsonNode segundaRespuesta = llamarOpenRouter(messages, null);
                     JsonNode content = segundaRespuesta.get("choices").get(0).get("message").get("content");
                     if (content != null && !content.isNull()) {
                         return content.asText();
