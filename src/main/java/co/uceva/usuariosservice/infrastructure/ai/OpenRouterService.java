@@ -93,7 +93,9 @@ public class OpenRouterService {
                 String tienda = f.getOrDefault("tienda", "Tienda desconocida").toString();
                 Object precioObj = f.get("precio");
                 String precio = precioObj != null ? precioObj.toString() : "Sin precio";
-                sb.append("- ").append(nombre).append(" en ").append(tienda).append(": $ ").append(precio).append(" COP\n");
+                Object hasProteinObj = f.get("hasProtein");
+                String hasProtein = hasProteinObj != null ? Boolean.parseBoolean(hasProteinObj.toString()) ? "Sí" : "No" : "No especificado";
+                sb.append("- ").append(nombre).append(" en ").append(tienda).append(": $ ").append(precio).append(" COP (Proteína: ").append(hasProtein).append(")\n");
             }
             sb.append("### FIN DE DATOS ###\n");
         }

@@ -19,4 +19,7 @@ public class ProductoFavorito {
 
     @Column(name = "notificaciones", nullable = false)
     private Boolean notificaciones = false;
+
+    @Column(name = "has_protein", nullable = false)
+    private Boolean hasProtein = false;
 }

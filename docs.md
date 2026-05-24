@@ -617,7 +617,8 @@ CREATE TABLE usuarios (
 CREATE TABLE usuario_favoritos (
     usuario_id BIGINT NOT NULL REFERENCES usuarios(id),
     product_id TEXT NOT NULL,
-    notificaciones BOOLEAN NOT NULL DEFAULT FALSE
+    notificaciones BOOLEAN NOT NULL DEFAULT FALSE,
+    has_protein BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 -- Mensajes del chat con IA
