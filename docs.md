@@ -448,11 +448,13 @@ Base: `/chat`
   | `mensaje` | string | sí | Texto del usuario |
   | `favoritos` | array | No | Contexto de productos favoritos. Cada item: `{ nombre, tienda, precio, hasProtein }` |
 - **Flujo interno:**
-  1. Guarda el mensaje del usuario en BD (`esIa = false`)
-  2. Construye system prompt con favoritos
-  3. Envía a OpenRouter (API key del servidor)
-  4. Guarda la respuesta de la IA en BD (`esIa = true`)
-  5. Devuelve la respuesta al cliente
+   1. Guarda el mensaje del usuario en BD (`esIa = false`)
+   2. Construye system prompt con favoritos
+   3. Envía a OpenRouter con la función `buscarEnTiendas` disponible
+   4. Si la IA decide buscar productos (ej. "busca arroz barato"), el backend ejecuta la búsqueda en Éxito, Olímpica y Surtifamiliar, inyecta los resultados en el contexto y la IA genera la respuesta final con los datos reales
+   5. Si la IA no necesita buscar, responde directamente
+   6. Guarda la respuesta de la IA en BD (`esIa = true`)
+   7. Devuelve la respuesta al cliente
 - **Response 200:**
   ```json
   {

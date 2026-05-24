@@ -36,7 +36,7 @@ src/main/java/co/uceva/usuariosservice/
 
 - **Gestión de usuarios** — registro, login, CRUD con roles (USER/ADMIN)
 - **Favoritos** — sincronización de productos favoritos por usuario, incluyendo indicador de proteína (`hasProtein`)
-- **Chat con IA** — chat contextual con EcoIA vía OpenRouter
+- **Chat con IA** — chat contextual con EcoIA vía OpenRouter, con capacidad de buscar productos en tiendas (Éxito, Olímpica, Surtifamiliar) mediante function calling
 - **Historial de precios** — registro y consulta de precios de productos
 - **Cifrado E2E obligatorio** — toda petición con body y toda respuesta viaja cifrada con RSA 2048 + AES-128 CBC
 - **Refresh tokens** — rotación de tokens con almacenamiento hasheado (SHA-256)
