@@ -479,14 +479,14 @@ Base: `/chat`
   }
   ```
 
-- **Campos del request (FASE 2):**
+- **Campos del request:**
   | Campo | Tipo | Obligatorio | Descripción |
   |---|---|---|---|
-  | `mensaje` | string | sí | Texto del usuario (mismo que en FASE 1) |
-  | `favoritos` | array | No | Contexto de productos favoritos |
-  | `resultadosBusqueda` | array | No | Resultados de MarketApiService. Cada item: `{ nombre, tienda, precio, link }` |
-  | `toolCallId` | string | No (sí en FASE 2) | ID del tool_call devuelto en FASE 1 |
-  | `arguments` | string | No (sí en FASE 2) | Argumentos JSON del tool_call devuelto en FASE 1 |
+  | `mensaje` | string | sí | Texto del usuario |
+  | `favoritos` | array | No | Contexto de productos favoritos. Cada item: `{ nombre, tienda, precio, hasProtein }` |
+  | `resultadosBusqueda` | array | No (FASE 2) | Resultados de MarketApiService. Cada item: `{ nombre, tienda, precio, link }` |
+  | `toolCallId` | string | No (FASE 2) | ID del tool_call devuelto en FASE 1 |
+  | `arguments` | string | No (FASE 2) | Argumentos JSON del tool_call devuelto en FASE 1 |
 
 - **Flujo interno:**
    - FASE 1: Guarda el mensaje del usuario en BD, consulta a OpenRouter con tools, devuelve action o respuesta
