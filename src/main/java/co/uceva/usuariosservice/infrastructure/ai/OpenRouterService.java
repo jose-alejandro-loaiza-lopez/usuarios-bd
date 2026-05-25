@@ -127,7 +127,8 @@ public class OpenRouterService {
         toolMsg.put("content", toolResultsJson);
         messages.add(toolMsg);
 
-        JsonNode data = llamarOpenRouter(messages, null);
+        List<Map<String, Object>> tools = construirToolBuscarEnTiendas();
+        JsonNode data = llamarOpenRouter(messages, tools);
         JsonNode choice = extraerPrimerChoice(data);
 
         if (choice == null) {
@@ -136,7 +137,31 @@ public class OpenRouterService {
         }
 
         JsonNode message = choice.get("message");
-        String texto = (message != null && message.has("content") && !message.get("content").isNull())
+        if (message == null) {
+            log.error("OpenRouter: mensaje sin field 'message'");
+            return null;
+        }
+
+        JsonNode toolCalls = message.get("tool_calls");
+
+        if (toolCalls != null && toolCalls.isArray() && !toolCalls.isEmpty()) {
+            JsonNode tc2 = toolCalls.get(0);
+            JsonNode function = tc2.get("function");
+            if (function != null && "buscarEnTiendas".equals(function.get("name").asText())) {
+                String arguments = function.get("arguments").asText();
+                String query = objectMapper.readTree(arguments).get("query").asText();
+                log.info("IA solicitó nueva busqueda: {}", query);
+
+                Map<String, Object> result = new HashMap<>();
+                result.put("action", "search");
+                result.put("query", query);
+                result.put("toolCallId", tc2.get("id").asText());
+                result.put("arguments", arguments);
+                return result;
+            }
+        }
+
+        String texto = message.has("content") && !message.get("content").isNull()
                 ? message.get("content").asText() : "";
 
         Map<String, Object> result = new HashMap<>();
