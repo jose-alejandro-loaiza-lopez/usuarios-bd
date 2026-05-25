@@ -231,7 +231,7 @@ public class OpenRouterService {
                 .append("- Úsala cuando el usuario pida buscar productos específicos, comparar precios entre tiendas, o cuando necesites información actualizada de productos.\n")
                 .append("- Ejemplos: 'busca arroz barato', 'cuánto cuesta el pollo en las tiendas', 'encuentra aceite de cocina'.\n")
                 .append("- La función buscará automáticamente en Éxito, Olímpica y Surtifamiliar y te devolverá los resultados ordenados por precio.\n")
-                .append("- IMPORTANTE: Cuando recibas los resultados, PRESÉNTALOS al usuario de forma amigable, indicando el producto, la tienda, el precio y el enlace. Usa los datos reales que recibiste.\n")
+                .append("- IMPORTANTE: Cuando recibas los resultados, PRESÉNTALOS al usuario de forma amigable, indicando el producto, la tienda, el precio y el enlace tipo [Consultar](url). Usa los datos reales que recibiste.\n")
                 .append("- Si un producto no se encuentra o no hay resultados, indícaselo amablemente al usuario.");
 
         if (favoritos != null && !favoritos.isEmpty()) {
