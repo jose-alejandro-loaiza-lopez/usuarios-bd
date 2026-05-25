@@ -21,4 +21,6 @@ public class ChatIaRequest {
     private String toolCallId;
 
     private String arguments;
+
+    private List<Map<String, Object>> historialBusquedas;
 }

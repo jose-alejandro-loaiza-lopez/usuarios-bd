@@ -117,7 +117,8 @@ public class MensajeChatRestController {
                 request.getFavoritos(),
                 request.getResultadosBusqueda(),
                 request.getToolCallId(),
-                request.getArguments()
+                request.getArguments(),
+                request.getHistorialBusquedas()
         );
 
         if (resultado == null) {

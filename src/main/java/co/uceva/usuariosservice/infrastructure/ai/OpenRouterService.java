@@ -35,7 +35,8 @@ public class OpenRouterService {
     @SuppressWarnings("unchecked")
     public Map<String, Object> preguntar(String mensaje, List<Map<String, Object>> favoritos,
                                           List<Map<String, Object>> resultadosBusqueda,
-                                          String toolCallId, String toolArguments) {
+                                          String toolCallId, String toolArguments,
+                                          List<Map<String, Object>> historialBusquedas) {
         if (apiKey == null || apiKey.isBlank()) {
             throw new RuntimeException("OPENROUTER_API_KEY no configurada");
         }
@@ -46,7 +47,7 @@ public class OpenRouterService {
             // ---- FASE 2: Viene con resultados de búsqueda ----
             if (toolCallId != null && !toolCallId.isBlank()
                     && resultadosBusqueda != null && !resultadosBusqueda.isEmpty()) {
-                return procesarResultadosBusqueda(mensaje, resultadosBusqueda, toolCallId, toolArguments, systemPrompt);
+                return procesarResultadosBusqueda(mensaje, resultadosBusqueda, toolCallId, toolArguments, systemPrompt, historialBusquedas);
             }
 
             // ---- FASE 1: Envio inicial con tools ----
@@ -100,32 +101,49 @@ public class OpenRouterService {
     private Map<String, Object> procesarResultadosBusqueda(
             String mensaje, List<Map<String, Object>> resultadosBusqueda,
             String toolCallId, String toolArguments,
-            String systemPrompt) throws Exception {
-
-        String toolResultsJson = objectMapper.writeValueAsString(resultadosBusqueda);
+            String systemPrompt,
+            List<Map<String, Object>> historialBusquedas) throws Exception {
 
         List<Map<String, Object>> messages = new ArrayList<>();
         messages.add(nuevoMap("role", "system", "content", systemPrompt));
         messages.add(nuevoMap("role", "user", "content", mensaje));
 
-        Map<String, Object> assistantMsg = new HashMap<>();
-        assistantMsg.put("role", "assistant");
-        assistantMsg.put("content", null);
-        Map<String, Object> tc = new HashMap<>();
-        tc.put("id", toolCallId);
-        tc.put("type", "function");
-        Map<String, String> fn = new HashMap<>();
-        fn.put("name", "buscarEnTiendas");
-        fn.put("arguments", toolArguments);
-        tc.put("function", fn);
-        assistantMsg.put("tool_calls", List.of(tc));
-        messages.add(assistantMsg);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> rondas = historialBusquedas;
+        if (rondas == null) {
+            rondas = List.of(Map.of(
+                    "toolCallId", toolCallId,
+                    "arguments", toolArguments,
+                    "resultadosBusqueda", resultadosBusqueda
+            ));
+        }
 
-        Map<String, Object> toolMsg = new HashMap<>();
-        toolMsg.put("role", "tool");
-        toolMsg.put("tool_call_id", toolCallId);
-        toolMsg.put("content", toolResultsJson);
-        messages.add(toolMsg);
+        for (Map<String, Object> ronda : rondas) {
+            String rondaId = (String) ronda.get("toolCallId");
+            String rondaArgs = (String) ronda.get("arguments");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> rondaResultados = (List<Map<String, Object>>) ronda.get("resultadosBusqueda");
+            String rondaResultadosJson = objectMapper.writeValueAsString(rondaResultados);
+
+            Map<String, Object> assistantMsg = new HashMap<>();
+            assistantMsg.put("role", "assistant");
+            assistantMsg.put("content", null);
+            Map<String, Object> tc = new HashMap<>();
+            tc.put("id", rondaId);
+            tc.put("type", "function");
+            Map<String, String> fn = new HashMap<>();
+            fn.put("name", "buscarEnTiendas");
+            fn.put("arguments", rondaArgs);
+            tc.put("function", fn);
+            assistantMsg.put("tool_calls", List.of(tc));
+            messages.add(assistantMsg);
+
+            Map<String, Object> toolMsg = new HashMap<>();
+            toolMsg.put("role", "tool");
+            toolMsg.put("tool_call_id", rondaId);
+            toolMsg.put("content", rondaResultadosJson);
+            messages.add(toolMsg);
+        }
 
         List<Map<String, Object>> tools = construirToolBuscarEnTiendas();
         JsonNode data = llamarOpenRouter(messages, tools);

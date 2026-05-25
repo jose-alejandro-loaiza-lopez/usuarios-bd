@@ -453,7 +453,7 @@ Base: `/chat`
   ```json
   {
     "mensaje": "busca arroz barato",
-    "favoritos": [...],
+    "favoritos": [],
     "resultadosBusqueda": [
       {
         "nombre": "Arroz Diana 500g",
@@ -469,10 +469,30 @@ Base: `/chat`
       }
     ],
     "toolCallId": "call_abc123",
-    "arguments": "{\"query\": \"arroz\"}"
+    "arguments": "{\"query\": \"arroz\"}",
+    "historialBusquedas": [
+      {
+        "toolCallId": "call_abc123",
+        "arguments": "{\"query\": \"arroz\"}",
+        "resultadosBusqueda": [
+          {
+            "nombre": "Arroz Diana 500g",
+            "tienda": "Éxito",
+            "precio": 2500,
+            "link": "https://www.exito.com/arroz-diana/p"
+          },
+          {
+            "nombre": "Arroz Caribe 1kg",
+            "tienda": "Olímpica",
+            "precio": 3200,
+            "link": "https://www.olimpica.com/arroz-caribe/p"
+          }
+        ]
+      }
+    ]
   }
   ```
-  El backend reconstruye la conversación con los resultados y la IA vuelve a tener `buscarEnTiendas` disponible, por lo que puede **responder con datos reales** o **solicitar otra búsqueda** si necesita más información:
+  El backend reconstruye la conversación completa con todas las rondas acumuladas en `historialBusquedas` y la IA vuelve a tener `buscarEnTiendas` disponible, por lo que puede **responder con datos reales** o **solicitar otra búsqueda** si necesita más información:
 
   **La IA responde (sin más búsquedas):**
   ```json
@@ -481,7 +501,7 @@ Base: `/chat`
   }
   ```
 
-  **La IA solicita otra búsqueda:**
+  **La IA solicita otra búsqueda (segundo producto):**
   ```json
   {
     "action": "search",
@@ -490,7 +510,41 @@ Base: `/chat`
     "arguments": "{\"query\": \"aceite\"}"
   }
   ```
-  En ese caso Flutter repite la FASE 2 con los nuevos resultados y un nuevo `toolCallId`. El ciclo se repite hasta que la IA decida responder.
+  En ese caso Flutter ejecuta la nueva búsqueda y repite la FASE 2, pero esta vez **acumula ambas rondas en `historialBusquedas`**:
+  ```json
+  {
+    "mensaje": "busca arroz y aceite",
+    "favoritos": [],
+    "resultadosBusqueda": [
+      {
+        "nombre": "Aceite Gourmet 900ml",
+        "tienda": "Éxito",
+        "precio": 8500,
+        "link": "https://www.exito.com/aceite-gourmet/p"
+      }
+    ],
+    "toolCallId": "call_def456",
+    "arguments": "{\"query\": \"aceite\"}",
+    "historialBusquedas": [
+      {
+        "toolCallId": "call_abc123",
+        "arguments": "{\"query\": \"arroz\"}",
+        "resultadosBusqueda": [
+          { "nombre": "Arroz Diana 500g", "tienda": "Éxito", "precio": 2500, "link": "..." },
+          { "nombre": "Arroz Caribe 1kg", "tienda": "Olímpica", "precio": 3200, "link": "..." }
+        ]
+      },
+      {
+        "toolCallId": "call_def456",
+        "arguments": "{\"query\": \"aceite\"}",
+        "resultadosBusqueda": [
+          { "nombre": "Aceite Gourmet 900ml", "tienda": "Éxito", "precio": 8500, "link": "..." }
+        ]
+      }
+    ]
+  }
+  ```
+  El ciclo se repite hasta que la IA decida responder. **IMPORTANTE:** Cada nueva ronda debe incluir TODAS las rondas anteriores en `historialBusquedas` para que la IA tenga contexto completo y no se quede en un bucle.
 
 - **Campos del request:**
   | Campo | Tipo | Obligatorio | Descripción |
@@ -500,6 +554,7 @@ Base: `/chat`
   | `resultadosBusqueda` | array | No (FASE 2+) | Resultados de MarketApiService. Cada item: `{ nombre, tienda, precio, link }` |
   | `toolCallId` | string | No (FASE 2+) | ID del tool_call devuelto en la fase anterior |
   | `arguments` | string | No (FASE 2+) | Argumentos JSON del tool_call devuelto en la fase anterior |
+  | `historialBusquedas` | array | No (FASE 2+) | Historial acumulado de todas las rondas de búsqueda. Cada item: `{ toolCallId, arguments, resultadosBusqueda }`. Imprescindible para búsquedas múltiples — sin esto la IA pierde el contexto de rondas anteriores y entra en bucle. |
 
 - **Flujo interno:**
    - FASE 1: Guarda el mensaje del usuario en BD, consulta a OpenRouter con tools, devuelve `action` o `respuesta`
