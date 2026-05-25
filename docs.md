@@ -556,9 +556,13 @@ Base: `/chat`
   | `arguments` | string | No (FASE 2+) | Argumentos JSON del tool_call devuelto en la fase anterior |
   | `historialBusquedas` | array | No (FASE 2+) | Historial acumulado de todas las rondas de búsqueda. Cada item: `{ toolCallId, arguments, resultadosBusqueda }`. Imprescindible para búsquedas múltiples — sin esto la IA pierde el contexto de rondas anteriores y entra en bucle. |
 
+- **Contexto conversacional:**
+   - La IA recibe automáticamente el **último intercambio** del chat (mensaje anterior del usuario + respuesta de la IA) como parte del historial de mensajes. Esto le permite mantener coherencia conversacional sin necesidad de enviar todo el historial.
+   - El contexto se obtiene de la BD y se inyecta antes del mensaje actual en ambas fases (FASE 1 y FASE 2+).
+   - Si no hay historial previo (primer mensaje del usuario), simplemente no se incluye contexto adicional.
 - **Flujo interno:**
-   - FASE 1: Guarda el mensaje del usuario en BD, consulta a OpenRouter con tools, devuelve `action` o `respuesta`
-   - FASE 2+: NO guarda el mensaje otra vez, reconstruye el tool_call, consulta a OpenRouter **con tools** (puede volver a buscar o responder), guarda la respuesta final solo cuando la IA responde texto
+   - FASE 1: Guarda el mensaje del usuario en BD, consulta a OpenRouter con tools y contexto del último intercambio, devuelve `action` o `respuesta`
+   - FASE 2+: NO guarda el mensaje otra vez, reconstruye el tool_call, consulta a OpenRouter **con tools** y contexto, guarda la respuesta final solo cuando la IA responde texto
 - **Error 500 (OpenRouter falla):**
   ```json
   {

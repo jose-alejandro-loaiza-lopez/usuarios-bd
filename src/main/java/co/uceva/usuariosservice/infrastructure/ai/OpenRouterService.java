@@ -1,5 +1,7 @@
 package co.uceva.usuariosservice.infrastructure.ai;
 
+import co.uceva.usuariosservice.domain.model.MensajeChat;
+import co.uceva.usuariosservice.domain.service.IMensajeChatService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -30,30 +32,34 @@ public class OpenRouterService {
     private String model;
 
     private final ObjectMapper objectMapper;
+    private final IMensajeChatService mensajeChatService;
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> preguntar(String mensaje, List<Map<String, Object>> favoritos,
                                           List<Map<String, Object>> resultadosBusqueda,
                                           String toolCallId, String toolArguments,
-                                          List<Map<String, Object>> historialBusquedas) {
+                                          List<Map<String, Object>> historialBusquedas,
+                                          Long usuarioId) {
         if (apiKey == null || apiKey.isBlank()) {
             throw new RuntimeException("OPENROUTER_API_KEY no configurada");
         }
 
         try {
             String systemPrompt = construirSystemPrompt(favoritos);
+            List<Map<String, Object>> historialContexto = construirHistorialContexto(usuarioId);
 
             // ---- FASE 2: Viene con resultados de búsqueda ----
             if (toolCallId != null && !toolCallId.isBlank()
                     && resultadosBusqueda != null && !resultadosBusqueda.isEmpty()) {
-                return procesarResultadosBusqueda(mensaje, resultadosBusqueda, toolCallId, toolArguments, systemPrompt, historialBusquedas);
+                return procesarResultadosBusqueda(mensaje, resultadosBusqueda, toolCallId, toolArguments, systemPrompt, historialBusquedas, historialContexto);
             }
 
             // ---- FASE 1: Envio inicial con tools ----
             List<Map<String, Object>> tools = construirToolBuscarEnTiendas();
             List<Map<String, Object>> messages = new ArrayList<>();
             messages.add(Map.of("role", "system", "content", systemPrompt));
+            messages.addAll(historialContexto);
             messages.add(Map.of("role", "user", "content", mensaje));
 
             JsonNode data = llamarOpenRouter(messages, tools);
@@ -102,10 +108,12 @@ public class OpenRouterService {
             String mensaje, List<Map<String, Object>> resultadosBusqueda,
             String toolCallId, String toolArguments,
             String systemPrompt,
-            List<Map<String, Object>> historialBusquedas) throws Exception {
+            List<Map<String, Object>> historialBusquedas,
+            List<Map<String, Object>> historialContexto) throws Exception {
 
         List<Map<String, Object>> messages = new ArrayList<>();
         messages.add(nuevoMap("role", "system", "content", systemPrompt));
+        messages.addAll(historialContexto);
         messages.add(nuevoMap("role", "user", "content", mensaje));
 
         @SuppressWarnings("unchecked")
@@ -266,7 +274,7 @@ public class OpenRouterService {
                 .append("- Usa ### para títulos de secciones (ej. ### Receta Sugerida).\n")
                 .append("- Usa listas con guiones para ingredientes o pasos.\n")
                 .append("- Mantén un tono amable, natural y colombiano.\n")
-                .append("- No tienes un historial del chat\n")
+                .append("- Tienes contexto del último intercambio del chat justo antes del mensaje actual.\n")
                 .append("- Si recomiendas productos, prioriza los favoritos del usuario.\n")
                 .append("- Si el usuario pide recetas, recomiendalas por mayor coincidencia con la lista de favoritos del usuario.\n")
                 .append("- Si el usuario no tiene favoritos, recomienda cualquier receta.\n")
@@ -292,6 +300,18 @@ public class OpenRouterService {
         }
 
         return sb.toString();
+    }
+
+    private List<Map<String, Object>> construirHistorialContexto(Long usuarioId) {
+        if (usuarioId == null) return List.of();
+        List<MensajeChat> ultimos = mensajeChatService.obtenerUltimosMensajes(usuarioId, 3);
+        if (ultimos.size() < 3) return List.of();
+        List<Map<String, Object>> contexto = new ArrayList<>();
+        for (int i = ultimos.size() - 1; i >= 1; i--) {
+            MensajeChat m = ultimos.get(i);
+            contexto.add(Map.of("role", m.getEsIa() ? "assistant" : "user", "content", m.getContenido()));
+        }
+        return contexto;
     }
 
     private Map<String, Object> nuevoMap(String k1, String v1, String k2, String v2) {
